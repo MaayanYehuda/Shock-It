@@ -84,12 +84,12 @@
                 android:background="#E0F2F1"
                 android:textColor="@color/black"
                 android:layout_marginBottom="6dp" />
+
             <Button
                 android:id="@+id/backToMainButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="חזור למסך הראשי"
-                android:layout_marginTop="32dp"/>
+                android:text="חזור למסך הראשי" />
 
         </LinearLayout>
     </ScrollView>
