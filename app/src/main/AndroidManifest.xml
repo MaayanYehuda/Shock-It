@@ -13,6 +13,12 @@
         android:theme="@style/Theme.ShockIt"
         tools:targetApi="31">
         <activity
+            android:name=".contact"
+            android:exported="false" />
+        <activity
+            android:name=".register"
+            android:exported="false" />
+        <activity
             android:name=".login"
             android:exported="false" />
         <activity
