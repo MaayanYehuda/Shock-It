@@ -2,37 +2,29 @@ package com.example.shock_it;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.Button;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 public class MainActivity extends AppCompatActivity {
 
-    Button btnOpenFarmerProfile, marketProfileButton;
+    private static final int SPLASH_DELAY = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // וודא שזה השם של קובץ ה-XML שלך
+        setContentView(R.layout.activity_main);
+    }
 
-        btnOpenFarmerProfile = findViewById(R.id.btnGoToProfile);
-        marketProfileButton = findViewById(R.id.marketProfileButton);
+    public void goToLogin(View view) {
+        Intent intent = new Intent(this, login.class);
+        startActivity(intent);
+    }
 
-        btnOpenFarmerProfile.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, FarmerProfile.class);
-                startActivity(intent);
-            }
-        } );
-        marketProfileButton.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, MarketProfileActivity.class);
-            startActivity(intent);
-        });
+    public void goToMarketMap(View view) {
+        Intent intent = new Intent(this, market.class);
+        startActivity(intent);
     }
 }
