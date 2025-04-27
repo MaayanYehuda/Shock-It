@@ -27,9 +27,11 @@
             android:textColor="#FFFFFF"
             android:textSize="18sp" />
 
-        <fragment
-            android:id="@+id/map"
+        <androidx.fragment.app.FragmentContainerView
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:map="http://schemas.android.com/apk/res-auto"
             android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:id="@+id/map"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
