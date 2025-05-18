@@ -8,7 +8,7 @@ import android.view.View;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
-public class login extends AppCompatActivity {
+public class Login extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -17,11 +17,11 @@ public class login extends AppCompatActivity {
         setContentView(R.layout.activity_login);
     }
     public void goToRegister(View view) {
-        Intent intent = new Intent(this, register.class);
+        Intent intent = new Intent(this, Register.class);
         startActivity(intent);
     }
 
-    public void login(View view) {
+   /* public void login(View view) {
         // handle login logic
-    }
+    }*/
 }

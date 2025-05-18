@@ -5,7 +5,7 @@ import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
-public class contact extends AppCompatActivity {
+public class Contact extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
