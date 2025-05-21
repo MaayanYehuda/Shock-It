@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -20,6 +21,11 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
+
+import java.io.IOException;
+import java.util.Objects;
+
+import services.UserService;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
@@ -43,6 +49,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void goToLogin(View view) {
+        try {
+            String value = UserService.func();
+            Log.d("ok", value);
+        } catch (IOException e) {
+            Log.d("stam", Objects.requireNonNull(e.getMessage()));
+        }
         Intent intent = new Intent(this, Login.class);
         startActivity(intent);
     }
