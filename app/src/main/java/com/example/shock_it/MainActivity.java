@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,10 +22,17 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import java.io.IOException;
+import services.UserService;
+
+
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
     private GoogleMap mMap;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private FusedLocationProviderClient fusedLocationClient;
+    private boolean isLoggingIn = false;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,9 +51,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void goToLogin(View view) {
+        if (isLoggingIn) return;
+        isLoggingIn = true;
+        new Thread(() -> {
+            try {
+                String res = UserService.func();
+                Log.d("OK", res);
+
+                // אם תרצה להחזיר תוצאה למסך או להראות משהו למשתמש
+                runOnUiThread(() -> {
+                    // כאן אפשר להציג Toast, Alert או לעדכן UI
+                    Log.d("UI", "Response from server: " + res);
+                    // למשל: Toast.makeText(this, "התחברת בהצלחה", Toast.LENGTH_SHORT).show();
+                });
+
+            } catch (IOException e) {
+                Log.e("server error", e.getMessage());
+
+                runOnUiThread(() -> {
+                    // אפשר גם להציג הודעת שגיאה
+                    // למשל: Toast.makeText(this, "שגיאה בחיבור לשרת", Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+
+        // אפשר לשלוח את המשתמש למסך הבא בינתיים
         Intent intent = new Intent(this, Login.class);
         startActivity(intent);
     }
+
 
     public void goToMarketMap(View view) {
         Intent intent = new Intent(this, Market.class);
