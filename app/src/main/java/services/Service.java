@@ -13,8 +13,8 @@ import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 public class Service {
-  //  private final static String spec = "http://192.168.1.10:3000";
-    private final static String spec = "http://10.0.2.2:3000";
+  //  private final static String spec = "http://10.0.2.2:3000";
+    private final static String spec = "http://192.168.1.10:3000";
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();

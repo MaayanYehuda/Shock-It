@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GoogleMap mMap;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private FusedLocationProviderClient fusedLocationClient;
-    private boolean isLoggingIn = false;
+//    private boolean isLoggingIn = false;
 
 
 
@@ -51,29 +51,29 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     public void goToLogin(View view) {
-        if (isLoggingIn) return;
-        isLoggingIn = true;
-        new Thread(() -> {
-            try {
-                String res = Service.get("users");
-                Log.d("OK", res);
-
-                // אם תרצה להחזיר תוצאה למסך או להראות משהו למשתמש
-                runOnUiThread(() -> {
-                    // כאן אפשר להציג Toast, Alert או לעדכן UI
-                    Log.d("UI", "Response from server: " + res);
-                    // למשל: Toast.makeText(this, "התחברת בהצלחה", Toast.LENGTH_SHORT).show();
-                });
-
-            } catch (IOException e) {
-                Log.e("server error", e.getMessage());
-
-                runOnUiThread(() -> {
-                    // אפשר גם להציג הודעת שגיאה
-                    // למשל: Toast.makeText(this, "שגיאה בחיבור לשרת", Toast.LENGTH_SHORT).show();
-                });
-            }
-        }).start();
+//        if (isLoggingIn) return;
+//        isLoggingIn = true;
+//        new Thread(() -> {
+//            try {
+//                String res = Service.get("users");
+//                Log.d("OK", res);
+//
+//                // אם תרצה להחזיר תוצאה למסך או להראות משהו למשתמש
+//                runOnUiThread(() -> {
+//                    // כאן אפשר להציג Toast, Alert או לעדכן UI
+//                    Log.d("UI", "Response from server: " + res);
+//                    // למשל: Toast.makeText(this, "התחברת בהצלחה", Toast.LENGTH_SHORT).show();
+//                });
+//
+//            } catch (IOException e) {
+//                Log.e("server error", e.getMessage());
+//
+//                runOnUiThread(() -> {
+//                    // אפשר גם להציג הודעת שגיאה
+//                    // למשל: Toast.makeText(this, "שגיאה בחיבור לשרת", Toast.LENGTH_SHORT).show();
+//                });
+//            }
+//        }).start();
 
         // אפשר לשלוח את המשתמש למסך הבא בינתיים
         Intent intent = new Intent(this, EntryActivity.class);
