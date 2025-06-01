@@ -23,7 +23,7 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.IOException;
-import services.UserService;
+import services.Service;
 
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
@@ -55,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         isLoggingIn = true;
         new Thread(() -> {
             try {
-                String res = UserService.func();
+                String res = Service.get("users");
                 Log.d("OK", res);
 
                 // אם תרצה להחזיר תוצאה למסך או להראות משהו למשתמש
@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }).start();
 
         // אפשר לשלוח את המשתמש למסך הבא בינתיים
-        Intent intent = new Intent(this, Login.class);
+        Intent intent = new Intent(this, EntryActivity.class);
         startActivity(intent);
     }
 
