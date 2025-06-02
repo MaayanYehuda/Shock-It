@@ -22,22 +22,21 @@ public class EntryActivity extends AppCompatActivity {
         // ברירת מחדל – טען את מסך login
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.loginLayout, new LoginFrag())
+                .replace(R.id.fragmentContainer, new LoginFrag())
                 .commit();
     }
 
     public void goToRegister(View view) {
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.registerLayout, new RegisterFrag())
-                .addToBackStack(null)
+                .replace(R.id.fragmentContainer, new RegisterFrag())
                 .commit();
     }
 
     public void goToLogin(View view) {
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.loginLayout, new LoginFrag())
+                .replace(R.id.fragmentContainer, new LoginFrag())
                 .commit();
     }
 }

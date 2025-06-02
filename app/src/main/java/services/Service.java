@@ -4,14 +4,21 @@ package services;
 
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Scanner;
+
 public class Service {
   //  private final static String spec = "http://10.0.2.2:3000";
     private final static String spec = "http://192.168.1.10:3000";
@@ -30,6 +37,9 @@ public class Service {
         conn.disconnect();
         return result.toString();
     }
+
+
+
     public static String post(String path, String data) throws IOException {
         URL url = new URL(spec+ "/" +path);
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -55,4 +65,27 @@ public class Service {
         conn.disconnect();
         return jsonString.toString();
     }
+
+
+    public static String login(String email, String password) throws IOException {
+        String path = "users/login?email=" + URLEncoder.encode(email, "UTF-8") +
+                "&password=" + URLEncoder.encode(password, "UTF-8");
+        return get(path);
+    }
+
+
+    public static String register(String name, String email, String password, String phone, String address) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("name", name);
+        jsonParam.put("email", email);
+        jsonParam.put("password", password);
+        jsonParam.put("phone", phone);
+        jsonParam.put("address", address);
+
+        return post("users/register", jsonParam.toString());
+    }
+
+
+
+
 }

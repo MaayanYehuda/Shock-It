@@ -7,8 +7,8 @@ public class Farmer extends User{
     private HashMap<Item, Double> products;
     private TreeSet<FarmerMarket> markets;
 
-    public Farmer(String name, String email, String password, String phone) {
-        super(name, email, password, phone);
+    public Farmer(String name, String email, String password, String phone, String address) {
+        super(name, email, password, phone, address);
         this.products = new HashMap<>();
         this.markets = new TreeSet<>();
     }

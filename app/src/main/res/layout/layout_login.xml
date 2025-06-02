@@ -25,16 +25,16 @@
             android:layout_marginBottom="32dp" />
 
         <EditText
-            android:id="@+id/userName"
+            android:id="@+id/email"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="שם משתמש"
             android:layout_marginBottom="16dp"
             android:backgroundTint="@null"
             android:gravity="right"
-            android:textDirection="rtl"
-            android:inputType="textPersonName"
-            android:padding="12dp" />
+            android:hint="שם משתמש"
+            android:inputType="textEmailAddress"
+            android:padding="12dp"
+            android:textDirection="rtl" />
 
         <EditText
             android:id="@+id/password"
@@ -54,7 +54,6 @@
             android:layout_height="wrap_content"
             android:text="כניסה"
             android:elevation="4dp"
-            android:onClick="login"
             android:layout_marginBottom="16dp"
             android:layout_gravity="center_horizontal"
             android:padding="12dp"
@@ -62,7 +61,6 @@
 
         <TextView
             android:id="@+id/goRegister"
-            android:onClick="goToRegister"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="אין משתמש? לחץ כאן להירשמות."

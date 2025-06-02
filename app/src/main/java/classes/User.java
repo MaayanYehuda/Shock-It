@@ -6,11 +6,14 @@ public class User {
     private String password;
     private String phone;
 
-    public User(String name, String email, String password, String phone) {
+    private String address;
+
+    public User(String name, String email, String password, String phone, String address) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.phone = phone;
+        this.address= address;
     }
 
     // Getters
@@ -30,6 +33,8 @@ public class User {
         return phone;
     }
 
+    public String getAddress() {return address;}
+
     // Setters
     public void setName(String name) {
         this.name = name;
@@ -47,6 +52,7 @@ public class User {
         this.phone = phone;
     }
 
+    public void  setAddress(String address){this.address=address;}
     // toString
     @Override
     public String toString() {

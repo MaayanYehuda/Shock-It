@@ -46,6 +46,18 @@
             android:layout_marginBottom="12dp" />
 
         <EditText
+            android:id="@+id/phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="מספר טלפון"
+            android:inputType="phone"
+            android:layout_marginBottom="16dp"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:padding="12dp" />
+
+
+        <EditText
             android:id="@+id/password"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
