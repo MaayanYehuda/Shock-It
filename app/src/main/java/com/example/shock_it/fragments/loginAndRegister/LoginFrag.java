@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.shock_it.EntryActivity;
+import com.example.shock_it.FarmerHomeActivity;
 import com.example.shock_it.R;
 
 import java.io.IOException;
@@ -67,6 +68,9 @@ public class LoginFrag extends Fragment {
 
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(getContext(), "התחברת בהצלחה!", Toast.LENGTH_SHORT).show();
+                    Intent intent = new Intent(requireContext(), FarmerHomeActivity.class);
+                    startActivity(intent);
+                    requireActivity().finish();
                 });
 
             } catch (IOException e) {
