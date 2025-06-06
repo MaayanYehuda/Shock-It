@@ -22,24 +22,24 @@ public class MapFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_map, container, false);
 
+        // המפה
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getChildFragmentManager().findFragmentById(R.id.map);
-
         if (mapFragment != null) {
             mapFragment.getMapAsync(googleMap -> {
                 LatLng location = new LatLng(32.0853, 34.7818);
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 12));
             });
         }
-        FloatingActionButton fab = rootView.findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                MarketListBottomSheet bottomSheet = new MarketListBottomSheet();
-                bottomSheet.show(getChildFragmentManager(), bottomSheet.getTag());
-            }
-        });
+
+        // הגדרת BottomSheet
+        View bottomSheet = rootView.findViewById(R.id.bottom_sheet);
+        BottomSheetBehavior<View> bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        bottomSheetBehavior.setPeekHeight(120); // גובה התצוגה כשה- BottomSheet לא פתוח לגמרי
+        bottomSheetBehavior.setHideable(false); // למנוע סגירה מלאה (אם רוצים)
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // פתיחה במצב מוקטן
 
         return rootView;
     }
+
 }
