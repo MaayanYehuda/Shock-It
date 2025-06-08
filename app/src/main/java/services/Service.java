@@ -85,7 +85,9 @@ public class Service {
         return post("users/register", jsonParam.toString());
     }
 
-
+    public static String getMarkets() throws IOException{
+        return get("markets");
+    }
 
 
 }
