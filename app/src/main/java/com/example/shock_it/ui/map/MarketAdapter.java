@@ -14,7 +14,15 @@ import java.util.List;
 import classes.Market;
 
 public class  MarketAdapter extends RecyclerView.Adapter<MarketAdapter.MarketViewHolder> {
+    public interface OnMarketClickListener {
+        void onMarketClick(Market market);
+    }
+    private OnMarketClickListener listener;
     private List<Market> markets;
+    public MarketAdapter(List<Market> markets, OnMarketClickListener listener) {
+        this.markets = markets;
+        this.listener = listener;
+    }
 
     public MarketAdapter(List<Market> markets) {
         this.markets = markets;
@@ -41,6 +49,12 @@ public class  MarketAdapter extends RecyclerView.Adapter<MarketAdapter.MarketVie
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             formattedDate = market.getDate() != null ? market.getDate().format(formatter) : "ללא תאריך";
         }
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onMarketClick(market);
+            }
+        });
+
         holder.dateText.setText(formattedDate);
     }
 

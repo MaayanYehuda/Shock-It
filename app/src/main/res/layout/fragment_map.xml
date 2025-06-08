@@ -7,7 +7,19 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- המפה -->
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/addMarket"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="הוספת שוק"
+        android:src="@drawable/ic_add"
+        app:backgroundTint="#9DC183"
+        app:layout_anchorGravity="bottom|start"
+        app:elevation="6dp"
+        />
+
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"

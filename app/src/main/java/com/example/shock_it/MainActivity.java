@@ -3,120 +3,174 @@ package com.example.shock_it;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.shock_it.ui.map.MarketAdapter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.*;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.bottomsheet.BottomSheetBehavior;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.io.IOException;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+import classes.Market;
 import services.Service;
 
-
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
-    private GoogleMap mMap;
-    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+public class MainActivity extends AppCompatActivity {
+    private GoogleMap mGoogleMap;
     private FusedLocationProviderClient fusedLocationClient;
-//    private boolean isLoggingIn = false;
-
-
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
+    private RecyclerView recyclerView;
+    private BottomSheetBehavior<View> bottomSheetBehavior;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize location services
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        // Get a handle to the fragment and register the callback
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
+        FloatingActionButton farmerButton = findViewById(R.id.farmerButton);
+        farmerButton.setOnClickListener(v -> {
+                Intent intent = new Intent(this, EntryActivity.class);
+                Toast.makeText(this, "מעבר לאזור החקלאים", Toast.LENGTH_SHORT).show();
+                startActivity(intent);
+        });
+
+        recyclerView = findViewById(R.id.marketsView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        View bottomSheet = findViewById(R.id.bottom_sheet);
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        bottomSheetBehavior.setPeekHeight(120);
+        bottomSheetBehavior.setHideable(false);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+        SupportMapFragment mapFragment = new SupportMapFragment();
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.map_container, mapFragment)
+                .commit();
+
+
         if (mapFragment != null) {
-            mapFragment.getMapAsync(this);
+            mapFragment.getMapAsync(googleMap -> {
+                mGoogleMap = googleMap;
+
+                try {
+                    boolean success = googleMap.setMapStyle(
+                            MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style));
+                    if (!success) {
+                        Log.e("MapStyle", "Style parsing failed.");
+                    }
+                } catch (Resources.NotFoundException e) {
+                    Log.e("MapStyle", "Can't find style. Error: ", e);
+                }
+                checkLocationPermission();
+                loadMarkets();
+
+            });
         }
+
     }
 
-    public void goToLogin(View view) {
-
-
-        // אפשר לשלוח את המשתמש למסך הבא בינתיים
-        Intent intent = new Intent(this, EntryActivity.class);
-        startActivity(intent);
-    }
-
-
-    public void goToMarketMap(View view) {
-        Intent intent = new Intent(this, Market.class);
-        startActivity(intent);
-    }
-
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-
-        // Check for location permission
+    private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(this,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocation();
-        } else {
-            // Request permission
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
+        } else {
+            enableMyLocation();
         }
     }
 
     private void enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(this,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            // Enable the my-location layer
-            mMap.setMyLocationEnabled(true);
+            mGoogleMap.setMyLocationEnabled(true);
 
-            // Get the last known location and move camera there
             fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            if (location != null) {
-                                LatLng currentLocation = new LatLng(
-                                        location.getLatitude(),
-                                        location.getLongitude());
-
-                                mMap.addMarker(new MarkerOptions()
-                                        .position(currentLocation)
-                                        .title("My Location"));
-
-                                // Move camera to user's location with zoom level 15
-                                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(
-                                        currentLocation, 15));
-                            }
+                    .addOnSuccessListener(this, location -> {
+                        if (location != null) {
+                            LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                            mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
+                        } else {
+                            LatLng defaultLocation = new LatLng(32.0853, 34.7818); // תל אביב
+                            mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 12));
                         }
                     });
         }
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                enableMyLocation();
+    private void loadMarkets() {
+        new Thread(() -> {
+            try {
+                String response = Service.getMarkets();
+                JSONArray jsonArray = new JSONArray(response);
+                List<Market> markets = new ArrayList<>();
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject obj = jsonArray.getJSONObject(i);
+                    String location = obj.getString("location");
+                    String dateStr = obj.getString("date");
+                    double lat = obj.getDouble("latitude");
+                    double lng = obj.getDouble("longitude");
+
+                    LocalDate date = null;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        date = LocalDate.parse(dateStr);
+                    }
+
+                    markets.add(new Market(date, location, lat, lng));
+                }
+
+                runOnUiThread(() -> {
+                    for (Market market : markets) {
+                        LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
+                        mGoogleMap.addMarker(new MarkerOptions()
+                                .position(pos)
+                                .title(market.getLocation())
+                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.market)));
+                    }
+
+                    recyclerView.setAdapter(new MarketAdapter(markets, market -> {
+                        LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
+                        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
+                    }));
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }
+        }).start();
     }
 }
+
+
+
+
+
+

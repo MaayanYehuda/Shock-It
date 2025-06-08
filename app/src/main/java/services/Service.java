@@ -89,5 +89,22 @@ public class Service {
         return get("markets");
     }
 
+    public static String addNewMarket(String date, String loc, double latitude, double longitude) {
+        String json = String.format(
+                "{\"date\":\"%s\", \"location\":\"%s\", \"latitude\":%f, \"longitude\":%f}",
+                date, loc, latitude, longitude
+        );
+
+        try {
+            // שליחת הבקשה לנתיב addMarket
+            String response = post("addMarket", json);
+            Log.d("RESPONSE", response); // הדפסת תגובת השרת
+            return response;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
 
 }
