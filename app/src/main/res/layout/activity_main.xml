@@ -41,7 +41,7 @@
         android:id="@+id/bottom_sheet"
         android:layout_width="match_parent"
         android:layout_height="347dp"
-        android:background="@android:color/white"
+        android:background="#9DC183"
         android:elevation="16dp"
         android:orientation="vertical"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">

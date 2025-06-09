@@ -14,6 +14,10 @@ import java.util.List;
 import classes.Market;
 
 public class  MarketAdapter extends RecyclerView.Adapter<MarketAdapter.MarketViewHolder> {
+    public void setMarketList(List<Market> markets) {
+        this.markets=markets;
+    }
+
     public interface OnMarketClickListener {
         void onMarketClick(Market market);
     }

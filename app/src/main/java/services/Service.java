@@ -90,21 +90,27 @@ public class Service {
     }
 
     public static String addNewMarket(String date, String loc, double latitude, double longitude) {
-        String json = String.format(
-                "{\"date\":\"%s\", \"location\":\"%s\", \"latitude\":%f, \"longitude\":%f}",
-                date, loc, latitude, longitude
-        );
-
         try {
-            // שליחת הבקשה לנתיב addMarket
-            String response = post("addMarket", json);
-            Log.d("RESPONSE", response); // הדפסת תגובת השרת
+            JSONObject jsonParam = new JSONObject();
+            jsonParam.put("date", date);
+            jsonParam.put("location", loc);
+            jsonParam.put("latitude", latitude);
+            jsonParam.put("longitude", longitude);
+
+            Log.d("AddMarket", "Sending data: " + jsonParam.toString());
+
+            // שליחת הבקשה לנתיב markets/addMarket (עם הנתיב המלא)
+            String response = post("markets/addMarket", jsonParam.toString());
+            Log.d("RESPONSE", "Server response: " + response);
             return response;
+
+        } catch (JSONException e) {
+            Log.e("AddMarket", "Error creating JSON: " + e.getMessage());
+            return null;
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e("AddMarket", "Network error: " + e.getMessage());
             return null;
         }
     }
-
 
 }

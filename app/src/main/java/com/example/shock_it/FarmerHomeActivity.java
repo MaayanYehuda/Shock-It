@@ -23,7 +23,7 @@ public class FarmerHomeActivity extends AppCompatActivity {
         binding = ActivityFarmerHomeBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setSupportActionBar(binding.appBarFarmerHome.toolbar);
+        setSupportActionBar(binding.toolbar);
 
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
@@ -31,7 +31,7 @@ public class FarmerHomeActivity extends AppCompatActivity {
 
 
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home)
+                R.id.nav_map, R.id.nav_add_market)
                 .setOpenableLayout(drawer)
                 .build();
         NavHostFragment navHostFragment =
