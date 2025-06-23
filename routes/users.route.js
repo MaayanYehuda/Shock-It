@@ -4,7 +4,7 @@ const neo4j = require("neo4j-driver");
 // התחברות ל-NEO4J
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  neo4j.auth.basic("neo4j", "loolrov17") // שים את הסיסמה שלך
+  neo4j.auth.basic("neo4j", "315833301") // שים את הסיסמה שלך
 );
 
 const session = driver.session();
@@ -73,5 +73,34 @@ router.post("/register", async (req, res) => {
     res.status(500).send("Error creating user");
   }
 });
+
+// קבלת פרטי משתמש לפי אימייל
+router.get("/profile", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: "Missing email" });
+  }
+
+  try {
+    const result = await session.run(
+      "MATCH (u:Person {email: $email}) RETURN u",
+      { email }
+    );
+
+    if (result.records.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = result.records[0].get("u").properties;
+    res.json(user);
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).send("Server error");
+  }
+});
+
+
+
 
 module.exports = router;

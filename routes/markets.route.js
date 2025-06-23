@@ -4,7 +4,7 @@ neo4j = require("neo4j-driver");
 
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  neo4j.auth.basic("neo4j", "loolrov17") // שים את הסיסמה שלך
+  neo4j.auth.basic("neo4j", "315833301") // שים את הסיסמה שלך
 );
 
 const session = driver.session();
@@ -76,6 +76,22 @@ router.post("/addMarket", async (req, res) => {
       message: "Internal server error",
       error: error.message,
     });
+  }
+});
+
+router.get("/locations-dates", async (req, res) => {
+  try {
+    const result = await session.run("MATCH (m:Market) RETURN m.location AS location, m.date AS date");
+    
+    const markets = result.records.map(record => ({
+      location: record.get("location"),
+      date: record.get("date"),
+    }));
+
+    res.json(markets);
+  } catch (error) {
+    console.error("Error fetching market locations and dates:", error);
+    res.status(500).send("Error fetching market data");
   }
 });
 module.exports = router;
