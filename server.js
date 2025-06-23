@@ -15,6 +15,10 @@ app.use("/users", users);
 let markets = require("./routes/markets.route");
 app.use("/markets", markets);
 
+
+let items = require("./routes/items.route");
+app.use("/items", items);
+
 // הפעלת השרת
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server is running on http://localhost:${port}`);
