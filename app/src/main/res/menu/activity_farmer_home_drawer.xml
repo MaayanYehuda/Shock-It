@@ -10,4 +10,9 @@
         android:id="@+id/nav_add_market"
         android:icon="@android:drawable/ic_menu_add"
         android:title="@string/addMarket" />
+    <item
+
+        android:id="@+id/farmerProfile"
+        android:icon="@drawable/ic_farmer"
+        android:title="פרופיל" />
 </menu>

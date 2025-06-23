@@ -31,7 +31,7 @@ public class FarmerHomeActivity extends AppCompatActivity {
 
 
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_map, R.id.nav_add_market)
+                R.id.nav_map, R.id.nav_add_market , R.id.farmerProfile)
                 .setOpenableLayout(drawer)
                 .build();
         NavHostFragment navHostFragment =

@@ -1,7 +1,9 @@
 package com.example.shock_it.fragments.loginAndRegister;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -68,6 +70,10 @@ public class LoginFrag extends Fragment {
 
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(getContext(), "התחברת בהצלחה!", Toast.LENGTH_SHORT).show();
+                    SharedPreferences prefs = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = prefs.edit();
+                    editor.putString("user_email", email); // משתנה email מכיל את האימייל של המשתמש
+                    editor.apply();
                     Intent intent = new Intent(requireContext(), FarmerHomeActivity.class);
                     startActivity(intent);
                     requireActivity().finish();

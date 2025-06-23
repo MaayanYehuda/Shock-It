@@ -124,10 +124,10 @@ public class MapFragment extends Fragment {
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         // ☑️ כפתור הוספת שוק
-        FloatingActionButton addMarketButton = rootView.findViewById(R.id.addMarket);
+        FloatingActionButton addMarketButton = rootView.findViewById(R.id.messages);
         if (addMarketButton != null) {
             addMarketButton.setOnClickListener(v -> {
-                Log.d("MapFragment", "Navigating to Add Market...");
+                Log.d("Invites:", "Navigating to Add Market...");
                 NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_farmer_home);
                 navController.navigate(R.id.nav_add_market);
             });

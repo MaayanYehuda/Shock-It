@@ -169,6 +169,10 @@ public class MainActivity extends AppCompatActivity {
                     recyclerView.setAdapter(new MarketAdapter(markets, market -> {
                         LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
                         mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
+                        Intent intent = new Intent(MainActivity.this, MarketProfileActivity.class);
+                        intent.putExtra("location", market.getLocation());
+                        intent.putExtra("date", market.getDate().toString()); // נניח שזה LocalDate
+                        startActivity(intent);
                     }));
                 });
             } catch (Exception e) {

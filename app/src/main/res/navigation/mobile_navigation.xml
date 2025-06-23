@@ -15,6 +15,12 @@
         android:name="com.example.shock_it.ui.map.addMarket.AddMarketFragment"
         android:label="Add Market"
         tools:layout="@layout/fragment_add_market" />
+
+    <fragment
+        android:id="@+id/farmerProfile"
+        android:name="com.example.shock_it.ui.map.farmerProfile.farmerProfile"
+        android:label="profile"
+        tools:layout="@layout/profile_farmer" />
 </navigation>
 
 

@@ -21,7 +21,7 @@ import java.util.Scanner;
 
 public class Service {
   //  private final static String spec = "http://10.0.2.2:3000";
-    private final static String spec = "http://192.168.1.10:3000";
+    private final static String spec = "http://192.168.0.104:3000";
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -112,5 +112,16 @@ public class Service {
             return null;
         }
     }
+
+    public static String getUserProfile(String email) throws IOException {
+        String path = "users/profile?email=" + URLEncoder.encode(email, "UTF-8");
+        return get(path);
+    }
+    public static String getMarketProfile(String location, String date) throws IOException {
+        String path = "markets/profile?location=" + URLEncoder.encode(location, "UTF-8") +
+                "&date=" + URLEncoder.encode(date, "UTF-8");
+        return get(path);
+    }
+
 
 }

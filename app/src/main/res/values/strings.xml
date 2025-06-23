@@ -20,6 +20,7 @@
 
     <string name="map">מפת שווקים</string>
     <string name="addMarket">הוספת שוק חדש</string>
+    <string name="profile">פרופיל חקלאי</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

@@ -9,12 +9,12 @@
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/addMarket"
+        android:id="@+id/messages"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:contentDescription="הוספת שוק"
-        android:src="@drawable/ic_add"
+        android:contentDescription="הזמנות"
+        android:src="@drawable/en"
         app:backgroundTint="#9DC183"
         app:layout_anchorGravity="bottom|start"
         app:elevation="6dp"
