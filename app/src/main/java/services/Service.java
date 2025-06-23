@@ -122,6 +122,24 @@ public class Service {
                 "&date=" + URLEncoder.encode(date, "UTF-8");
         return get(path);
     }
+    public static String getFarmerItems(String farmerEmail) throws IOException {
+        return get("items?farmerEmail=" + farmerEmail);
+    }
+    public static String addNewItem(String name, String desc, double price, String farmerEmail) {
+        try {
+            JSONObject jsonParam = new JSONObject();
+            jsonParam.put("name", name);
+            jsonParam.put("description", desc);
+            jsonParam.put("price", price);
+            jsonParam.put("farmerEmail", farmerEmail);
+
+            return post("items/add", jsonParam.toString());
+
+        } catch (JSONException | IOException e) {
+            Log.e("AddItem", "Error creating or sending JSON: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
 
 
 }

@@ -72,15 +72,25 @@
             android:textSize="16sp"
             android:textColor="#000000" />
 
+        <!-- שווקים -->
+
         <TextView
             android:id="@+id/farmerProducts"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="אבוקדו, עגבניות, שמן זית"
-            android:textSize="16sp"
-            android:textColor="#444444" />
+            android:textColor="#444444"
+            android:textSize="16sp" />
+        <Button
+            android:id="@+id/addProductButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="➕ הוסף מוצר"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="#9DC183"
+            android:textColor="#FFFFFF"
+            android:padding="10dp" />
 
-        <!-- שווקים -->
         <TextView
             android:id="@+id/marketsLabel"
             android:layout_width="match_parent"

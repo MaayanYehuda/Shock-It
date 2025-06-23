@@ -22,4 +22,7 @@ public class Farmer extends User{
     public Double getPrice(Item item){
         return products.get(item);
     }
+    public HashMap<Item, Double> getProducts(){
+        return this.products;
+    }
 }
