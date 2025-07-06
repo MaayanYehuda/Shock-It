@@ -23,23 +23,18 @@ router.get("/", async (req, res) => {
 router.post("/addMarket", async (req, res) => {
   console.log("=== POST /addMarket ===");
   console.log("Request body:", req.body);
-  console.log("Request headers:", req.headers);
 
-  const { date, latitude, location, longitude } = req.body;
+  const { date, latitude, location, longitude, farmerEmail } = req.body;
 
-  // בדיקת נתונים נדרשים
-  if (!date || !location || latitude == null || longitude == null) {
-    console.log("Missing required fields");
+  if (!date || !location || latitude == null || longitude == null || !farmerEmail) {
     return res.status(400).json({
       message: "Missing required fields",
-      required: ["date", "location", "latitude", "longitude"],
-      received: { date, location, latitude, longitude },
+      required: ["date", "location", "latitude", "longitude", "farmerEmail"],
+      received: { date, location, latitude, longitude, farmerEmail },
     });
   }
 
   try {
-    console.log("Checking if market exists:", { date, location });
-
     // בדיקה אם השוק כבר קיים
     const checkResult = await session.run(
       "MATCH (m:Market {date: $date, location: $location}) RETURN m",
@@ -47,14 +42,11 @@ router.post("/addMarket", async (req, res) => {
     );
 
     if (checkResult.records.length > 0) {
-      console.log("Market already exists");
       return res.status(409).json({ message: "Market already exists" });
     }
 
-    console.log("Creating new market...");
-
-    // יצירת השוק החדש
-    const result = await session.run(
+    // יצירת השוק
+    const createMarketResult = await session.run(
       "CREATE (m:Market {date: $date, latitude: $latitude, location: $location, longitude: $longitude}) RETURN m",
       {
         date,
@@ -64,12 +56,22 @@ router.post("/addMarket", async (req, res) => {
       }
     );
 
-    const market = result.records[0].get("m").properties;
-    console.log("Market created successfully:", market);
+    const market = createMarketResult.records[0].get("m").properties;
+
+    // יצירת קשר FOUNDER
+    await session.run(
+      `MATCH (f:Person {email: $email}), (m:Market {date: $date, location: $location})
+       CREATE (f)-[:FOUNDER]->(m)`,
+      { email: farmerEmail, date, location }
+    );
+
+    console.log("Market and FOUNDER relation created:", market);
+
     res.status(201).json({
-      message: "Market created successfully",
+      message: "Market created and linked to farmer",
       market: market,
     });
+
   } catch (error) {
     console.error("Error adding market:", error);
     res.status(500).json({
@@ -78,6 +80,7 @@ router.post("/addMarket", async (req, res) => {
     });
   }
 });
+
 
 router.get("/locations-dates", async (req, res) => {
   try {
@@ -94,4 +97,88 @@ router.get("/locations-dates", async (req, res) => {
     res.status(500).send("Error fetching market data");
   }
 });
+
+
+// POST - הזמנת חקלאי לשוק
+router.post("/inviteFarmer", async (req, res) => {
+  const { marketDate, marketLocation, invitedEmail, inviterEmail } = req.body;
+
+  if (!marketDate || !marketLocation || !invitedEmail || !inviterEmail) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    // ודא שהשוק והחקלאים קיימים
+    await session.run(`MERGE (f:Person {email: $inviterEmail})`, { inviterEmail });
+    await session.run(`MERGE (f:Person {email: $invitedEmail})`, { invitedEmail });
+
+    // צור קשר INVITE עם status
+    await session.run(
+      `MATCH (farmer:Person {email: $invitedEmail}), (market:Market {date: $marketDate, location: $marketLocation})
+        MERGE (market)-[r:INVITE]->(farmer)
+        SET r.participate = false`,
+      { invitedEmail, marketDate, marketLocation }
+    );
+
+    res.status(200).json({ message: "Invitation sent" });
+
+  } catch (error) {
+    console.error("Error inviting farmer:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
+// קבלת כל ההזמנות של משתמש לפי אימייל
+router.get("/invitations/:email", async (req, res) => {
+  const { email } = req.params;
+
+  try {
+    const result = await session.run(
+      `MATCH (m:Market)-[r:INVITE {participate: false}]->(f:Person {email: $email})
+       RETURN m.date AS date, m.location AS location`,
+      { email }
+    );
+
+    const invitations = result.records.map(record => ({
+      date: record.get("date"),
+      location: record.get("location"),
+    }));
+
+    res.status(200).json({ invitations });
+
+  } catch (error) {
+    console.error("Error fetching invitations:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.put("/acceptInvitation", async (req, res) => {
+  const { email, marketDate, marketLocation } = req.body;
+
+  try {
+    // עדכן את ההזמנה ל-participate=true
+    await session.run(
+      `MATCH (m:Market {date: $marketDate, location: $marketLocation})-[r:INVITE]->(f:Person {email: $email})
+       SET r.participate = true`,
+      { email, marketDate, marketLocation }
+    );
+
+    // צור קשר participate
+    await session.run(
+      `MATCH (f:Person {email: $email}), (m:Market {date: $marketDate, location: $marketLocation})
+       MERGE (f)-[:PARTICIPATE]->(m)`,
+      { email, marketDate, marketLocation }
+    );
+
+    res.status(200).json({ message: "Invitation accepted" });
+
+  } catch (error) {
+    console.error("Error accepting invitation:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+
+
 module.exports = router;
