@@ -1,5 +1,6 @@
 package com.example.shock_it.manageMarket;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent; // 🆕 Import Intent
 import android.content.SharedPreferences;
@@ -20,6 +21,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -39,7 +41,7 @@ public class ManageMarketFragment extends Fragment {
     private Button inviteFarmerButton;
 
     private EditText searchFarmerEditText;
-    private Button searchFarmerButton;
+    private ImageButton searchFarmerButton;
     private TextView searchResultsTextView;
     private ListView farmersResultsListView;
     private ArrayAdapter<String> farmersAdapter;
@@ -54,6 +56,7 @@ public class ManageMarketFragment extends Fragment {
     private Button buttonBackToAddMarket;
     private Button buttonGoToMarketProfile;
 
+    @SuppressLint("WrongViewCast")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
