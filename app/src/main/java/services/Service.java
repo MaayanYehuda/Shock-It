@@ -1,27 +1,27 @@
 package services;
 
-// emulator ip: 10.0.2.2:3000
-
 import android.util.Log;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONArray; // נשאר כי הוא נחוץ לניתוח JSON במקומות אחרים
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.Scanner;
 
 public class Service {
-  //  private final static String spec = "http://10.0.2.2:3000";
-    private final static String spec = "http://192.168.0.104:3000";
+    // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
+    // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
+    // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
+    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
+
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();
@@ -89,17 +89,19 @@ public class Service {
         return get("markets");
     }
 
-    public static String addNewMarket(String date, String loc, double latitude, double longitude) {
+    public static String addNewMarket(String date, String loc, double latitude, double longitude, String farmerEmail) {
         try {
             JSONObject jsonParam = new JSONObject();
             jsonParam.put("date", date);
             jsonParam.put("location", loc);
             jsonParam.put("latitude", latitude);
             jsonParam.put("longitude", longitude);
+            jsonParam.put("farmerEmail", farmerEmail);
 
             Log.d("AddMarket", "Sending data: " + jsonParam.toString());
+            Log.d("AddMarket", "FARMER EMAIL: " + farmerEmail);
 
-            // שליחת הבקשה לנתיב markets/addMarket (עם הנתיב המלא)
+
             String response = post("markets/addMarket", jsonParam.toString());
             Log.d("RESPONSE", "Server response: " + response);
             return response;
@@ -112,6 +114,7 @@ public class Service {
             return null;
         }
     }
+
 
     public static String getUserProfile(String email) throws IOException {
         String path = "users/profile?email=" + URLEncoder.encode(email, "UTF-8");
@@ -141,5 +144,44 @@ public class Service {
         }
     }
 
+    // 🆕 הוספה: inviteFarmerToMarket
+    public static String inviteFarmerToMarket(String marketId, String invitedEmail, String inviterEmail) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("marketId", marketId);
+        jsonParam.put("invitedEmail", invitedEmail);
+        jsonParam.put("inviterEmail", inviterEmail);
 
+        String response = post("markets/inviteFarmer", jsonParam.toString());
+        Log.d("InviteFarmer", "Server response: " + response);
+        return response;
+    }
+
+    // 🆕 הוספה: searchFarmers
+    public static String searchFarmers(String query) throws IOException {
+        String encodedQuery = URLEncoder.encode(query, "UTF-8");
+        String path = "markets/searchFarmers?query=" + encodedQuery;
+        String response = get(path);
+        Log.d("SearchFarmers", "Server response: " + response);
+        return response;
+    }
+
+    // 🆕 הוספה: getInvitations
+    public static String getInvitations(String email) throws IOException {
+        String encodedEmail = URLEncoder.encode(email, "UTF-8");
+        String path = "markets/invitations/" + encodedEmail;
+        String response = get(path);
+        Log.d("GetInvitations", "Server response: " + response);
+        return response;
+    }
+
+    // 🆕 הוספה: acceptInvitation
+    public static String acceptInvitation(String email, String marketId) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("email", email);
+        jsonParam.put("marketId", marketId);
+
+        String response = post("markets/acceptInvitation", jsonParam.toString());
+        Log.d("AcceptInvitation", "Server response: " + response);
+        return response;
+    }
 }

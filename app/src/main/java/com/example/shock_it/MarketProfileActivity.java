@@ -64,7 +64,7 @@ public class MarketProfileActivity extends AppCompatActivity {
         marketHours.setText("שעות: 09:00 - 14:00");
 
         backToMainButton.setOnClickListener(v -> {
-            Intent backIntent = new Intent(MarketProfileActivity.this, MainActivity.class);
+            Intent backIntent = new Intent(MarketProfileActivity.this, FarmerHomeActivity.class);
             startActivity(backIntent);
             finish();
         });

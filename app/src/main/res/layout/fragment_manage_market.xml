@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0F4F8"
+    tools:context=".manageMarket.ManageMarketFragment">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/textViewMarketId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="מזהה שוק: לא זמין"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="#2C3E50"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginBottom="32dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                app:contentPadding="16dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="הזמנת חקלאי לשוק:"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#34495E"
+                        android:layout_marginBottom="16dp"/>
+
+                    <EditText
+                        android:id="@+id/editTextFarmerEmail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="מייל החקלאי להזמנה"
+                        android:inputType="textEmailAddress"
+                        android:layout_marginBottom="16dp"
+                        android:minHeight="48dp"
+                        android:background="@drawable/rounded_edittext_background"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:textColorHint="#95A5A6"
+                        android:textColor="#2C3E50"/>
+
+                    <Button
+                        android:id="@+id/buttonInviteFarmer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="הזמן חקלאי"
+                        android:backgroundTint="#2ECC71"
+                        android:textColor="#FFFFFF"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        style="@style/Widget.MaterialComponents.Button"/>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                app:contentPadding="16dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="16dp"
+                        android:background="@drawable/rounded_edittext_background">
+                        <EditText
+                            android:id="@+id/editTextSearchFarmer"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:hint="חפש חקלאי לפי שם או מייל"
+                            android:inputType="textEmailAddress"
+                            android:minHeight="48dp"
+                            android:background="@android:color/transparent"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:textColorHint="#95A5A6"
+                            android:textColor="#2C3E50"/>
+
+                        <ImageButton
+                            android:id="@+id/buttonSearchFarmer"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:src="@drawable/ic_search_green"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:contentDescription="Search"
+                            app:tint="#2ECC71"/>
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/textViewSearchResults"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="תוצאות חיפוש:"
+                        android:textSize="16sp"
+                        android:textStyle="italic"
+                        android:textColor="#3498DB"
+                        android:visibility="gone"
+                        android:layout_marginBottom="8dp"/>
+
+                    <ListView
+                        android:id="@+id/listViewFarmersResults"
+                        android:layout_width="match_parent"
+                        android:layout_height="150dp"
+                        android:background="@drawable/list_view_border_background"
+                        android:padding="4dp"
+                        android:divider="#E0E0E0"
+                        android:dividerHeight="1dp"
+                        android:visibility="gone"/>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView> <Button
+            android:id="@+id/buttonBackToAddMarket"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="חזרה להוספת שוק"
+            android:backgroundTint="#95A5A6"
+            android:textColor="#FFFFFF"
+            android:layout_marginTop="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            style="@style/Widget.MaterialComponents.Button"/>
+
+            <Button
+                android:id="@+id/buttonGoToMarketProfile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="לפרופיל השוק"
+                android:backgroundTint="#3498DB"
+                android:textColor="#FFFFFF"
+                android:layout_marginTop="12dp"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                style="@style/Widget.MaterialComponents.Button"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

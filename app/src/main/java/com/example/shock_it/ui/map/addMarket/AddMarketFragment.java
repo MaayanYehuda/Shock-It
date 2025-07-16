@@ -2,6 +2,7 @@ package com.example.shock_it.ui.map.addMarket;
 
 import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.icu.text.SimpleDateFormat;
 import android.icu.util.Calendar;
 import android.location.Address;
@@ -11,6 +12,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.util.Log;
@@ -42,6 +45,7 @@ public class AddMarketFragment extends Fragment {
     private EditText dateInput, locationInput;
     private Button addMarketButton;
 
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -70,8 +74,17 @@ public class AddMarketFragment extends Fragment {
         viewModel.getMarketAddedSuccessfully().observe(getViewLifecycleOwner(), success -> {
             if (success != null && success) {
                 clearInputs();
+                String marketId = viewModel.getNewMarketId(); // קבל את ה-ID מה-ViewModel
+                if (marketId != null) {
+                    Log.d("AddMarketFragment", "Market added successfully, navigating to ManageMarketFragment with ID: " + marketId);
+                    manualNavigateToManageMarket(marketId); // קרא לפונקציית הניווט
+                } else {
+                    Log.w("AddMarketFragment", "Market added successfully, but no ID received for navigation.");
+                    Toast.makeText(requireContext(), "השוק נוסף בהצלחה, אך לא ניתן לנווט לניהול. ID חסר.", Toast.LENGTH_LONG).show();
+                }
             }
         });
+
 
         addMarketButton.setOnClickListener(v -> {
             String date = dateInput.getText().toString().trim();
@@ -98,7 +111,10 @@ public class AddMarketFragment extends Fragment {
                 public void onCoordinatesReceived(double latitude, double longitude) {
                     String formattedDate = convertToISODate(date);
                     // קריאה ל-ViewModel להוספת השוק
-                    viewModel.addMarket(formattedDate, loc, latitude, longitude);
+                    SharedPreferences prefs = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+                    String farmerEmail = prefs.getString("user_email", null); // null ברירת מחדל אם לא קיים
+                    viewModel.addMarket(formattedDate, loc, latitude, longitude, farmerEmail);
+
                 }
 
                 @Override
@@ -161,6 +177,27 @@ public class AddMarketFragment extends Fragment {
         } catch (ParseException e) {
             return date;
         }
+    }
+
+    // בתוך AddMarketFragment.java, בסוף הקובץ, מחוץ לכל המתודות הקיימות
+
+    private void manualNavigateToManageMarket(String marketId) {
+        Bundle args = new Bundle();
+        args.putString("marketId", marketId);
+
+        com.example.shock_it.manageMarket.ManageMarketFragment manageMarketFragment = new com.example.shock_it.manageMarket.ManageMarketFragment();
+        manageMarketFragment.setArguments(args); // העבר את ה-arguments
+
+        FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
+        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+
+        fragmentTransaction.replace(R.id.nav_host_fragment_content_farmer_home, manageMarketFragment);
+
+        fragmentTransaction.addToBackStack(null);
+
+        fragmentTransaction.commit();
+
+        Toast.makeText(requireContext(), "נווט למסך ניהול שוק " + marketId, Toast.LENGTH_SHORT).show(); // 🆕 הודעה לאחר ניווט
     }
 
     private void clearInputs() {

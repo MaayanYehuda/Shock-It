@@ -186,7 +186,7 @@ public class MapFragment extends Fragment {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         date = LocalDate.parse(dateStr);
                     }
-
+                    Log.d("MARKETS", "Markets: " + markets.size());
                     markets.add(new Market(date, location, lat, lng));
                 }
 

@@ -63,8 +63,9 @@ public class farmerProfile extends Fragment {
         productsTextView = view.findViewById(R.id.farmerProducts);
         marketsTextView = view.findViewById(R.id.farmerMarkets);
 
-        // קריאה לפרופיל מהשרת
+
         loadFarmerProfile();
+        updateProductsUI(farmerEmail);
         Button addProductButton = view.findViewById(R.id.addProductButton);
         addProductButton.setOnClickListener(v -> {
             AddProductDialogFragment dialog = new AddProductDialogFragment();
