@@ -5,7 +5,6 @@ const cors = require("cors");
 const app = express();
 const port = 3000;
 
-// אפשר קריאות מכל מקום (לצורך הצגה)
 app.use(cors());
 app.use(express.json());
 
@@ -14,7 +13,6 @@ app.use("/users", users);
 
 let markets = require("./routes/markets.route");
 app.use("/markets", markets);
-
 
 let items = require("./routes/items.route");
 app.use("/items", items);
