@@ -1,7 +1,9 @@
 package com.example.shock_it;
 
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -33,17 +35,23 @@ public class MarketProfileActivity extends AppCompatActivity {
     String location;
     String date;
 
+    String email; // This is the class member you want to check
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_market_profile);
 
-        // קבלת הפרמטרים מהאינטנט
+        // Get parameters from the Intent
         Intent intent = getIntent();
         location = intent.getStringExtra("location");
         date = intent.getStringExtra("date");
 
-        // התחברות ל-Views
+        SharedPreferences prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        // Assign the retrieved email to the class member 'email'
+        email = prefs.getString("user_email", null);
+
+        // Initialize Views
         marketImage = findViewById(R.id.marketImage);
         marketName = findViewById(R.id.marketName);
         marketLocation = findViewById(R.id.marketLocation);
@@ -53,25 +61,31 @@ public class MarketProfileActivity extends AppCompatActivity {
         backToMainButton = findViewById(R.id.backToMainButton);
         navigateButton = findViewById(R.id.navigateButton);
 
-        // לדוגמה: אם יש לך תמונה ספציפית לפי מיקום, אפשר להחליף את התמונה פה
+        // Example: If you have a specific image based on location, you can replace the image here
         // marketImage.setImageResource(R.drawable.some_image_based_on_location);
 
-        // הצגת מיקום ותאריך שמגיעים מהאינטנט
+        // Display location and date from the Intent
         marketLocation.setText("מיקום: " + location);
         marketDate.setText("תאריך: " + date);
 
-        // אם שעות פעילות לא מגיעות מהשרת, אפשר להשאיר סטטי או להחליף לפי צורך
+        // If operating hours don't come from the server, you can leave them static or change as needed
         marketHours.setText("שעות: 09:00 - 14:00");
 
         backToMainButton.setOnClickListener(v -> {
-            Intent backIntent = new Intent(MarketProfileActivity.this, FarmerHomeActivity.class);
+            Intent backIntent;
+            // Now 'email' will correctly hold the user's email or null
+            if (email == null || email.isEmpty()) {
+                backIntent = new Intent(MarketProfileActivity.this, MainActivity.class);
+            } else {
+                backIntent = new Intent(MarketProfileActivity.this, FarmerHomeActivity.class);
+            }
             startActivity(backIntent);
             finish();
         });
 
         navigateButton.setOnClickListener(v -> {
-            // אם יש לך קואורדינטות אמיתיות, כדאי להעביר אותן באינטנט ולנווט אליהן
-            // כרגע דוגמה עם תל אביב:
+            // If you have actual coordinates, you should pass them in the Intent and navigate to them
+            // For now, example with Tel Aviv:
             openWazeNavigation("32.0853,34.7818");
         });
 
@@ -85,6 +99,7 @@ public class MarketProfileActivity extends AppCompatActivity {
             intent.setPackage("com.waze");
             startActivity(intent);
         } catch (ActivityNotFoundException ex) {
+            // If Waze is not installed, open Play Store to Waze
             Intent intent = new Intent(Intent.ACTION_VIEW,
                     Uri.parse("market://details?id=com.waze"));
             startActivity(intent);
@@ -93,15 +108,17 @@ public class MarketProfileActivity extends AppCompatActivity {
 
     private void loadMarketProfile() {
         new Thread(() -> {
+            Log.d("MarketProfileActivity", "Attempting to load market profile...");
             try {
                 String response = Service.getMarketProfile(location, date);
+                Log.d("MarketProfileActivity", "Server Response: " + response);
                 JSONObject json = new JSONObject(response);
+                Log.d("MarketProfileActivity", "JSON parsed successfully for: " + location + ", " + date);
 
-                // לדוגמה: מידע מהשרת
-                String name = json.optString("name", location);  // אם אין שם, נשתמש במיקום
+                String name = json.optString("name", location);  // If no name, use location
                 String hours = json.optString("hours", "09:00 - 14:00");
 
-                JSONArray farmersArray = json.optJSONArray("farmers"); // מערך של חקלאים
+                JSONArray farmersArray = json.optJSONArray("farmers"); // Array of farmers
 
                 runOnUiThread(() -> {
                     marketName.setText(name);
@@ -124,15 +141,20 @@ public class MarketProfileActivity extends AppCompatActivity {
                     } else {
                         TextView noFarmers = new TextView(MarketProfileActivity.this);
                         noFarmers.setText("אין חקלאים משתתפים");
-                        noFarmers.setPadding(0,4,0,4);
+                        noFarmers.setPadding(0, 4, 0, 4);
                         farmersList.addView(noFarmers);
                     }
                 });
 
-            } catch (IOException | JSONException e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                Log.e("MarketProfileActivity", "Network error loading market profile: " + e.getMessage(), e);
                 runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: בעיית רשת", Toast.LENGTH_LONG).show();
+                });
+            } catch (JSONException e) {
+                Log.e("MarketProfileActivity", "JSON parsing error loading market profile: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: פורמט נתונים שגוי", Toast.LENGTH_LONG).show();
                 });
             }
         }).start();

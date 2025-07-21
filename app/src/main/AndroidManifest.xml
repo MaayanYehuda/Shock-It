@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
     <!-- Add internet permission -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -20,38 +21,39 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name="INVITES.FarmerInvites"
+            android:exported="false" />
+        <activity
             android:name=".FarmerHomeActivity"
             android:exported="false"
             android:label="@string/title_activity_farmer_home"
-            android:theme="@style/Theme.ShockIt.NoActionBar" />
-        <!-- Add Google Maps API key here -->
+            android:theme="@style/Theme.ShockIt.NoActionBar" /> <!-- Add Google Maps API key here -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" /> <!-- מסכים מה-main -->
         <activity
             android:name=".Contact"
             android:exported="false" />
-        <activity
-            android:name=".Register"
-            android:exported="false" />
+
         <activity
             android:name=".EntryActivity"
             android:exported="false" /> <!-- מסכים מה-JudaBranch (שאין עליהם קונפליקט) -->
         <activity
             android:name=".MarketProfileActivity"
             android:exported="false" />
-        <activity
-            android:name=".FarmerProfile"
-            android:exported="false" /> <!-- Main Activity -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity android:name=".InvitationsActivity" />
     </application>
-    <uses-permission android:name="android.permission.INTERNET" />
+
 </manifest>

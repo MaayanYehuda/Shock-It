@@ -20,7 +20,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.0.106:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -121,7 +121,7 @@ public class Service {
         return get(path);
     }
     public static String getMarketProfile(String location, String date) throws IOException {
-        String path = "markets/profile?location=" + URLEncoder.encode(location, "UTF-8") +
+        String path = "markets/profile?location=" + URLEncoder.encode(location, "UTF-8") + // <-- שינוי כאן
                 "&date=" + URLEncoder.encode(date, "UTF-8");
         return get(path);
     }

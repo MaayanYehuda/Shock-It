@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="4dp"
+    app:contentPadding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/marketNameTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textStyle="bold"
+            android:textSize="20sp"
+            android:textColor="@color/black"
+            android:text="שוק התקווה" />
+
+        <TextView
+            android:id="@+id/marketLocationTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@android:color/darker_gray"
+            android:drawableStart="@drawable/ic_location"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp"
+            android:text="תל אביב" />
+
+        <TextView
+            android:id="@+id/marketDateTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@android:color/darker_gray"
+            android:drawableStart="@drawable/ic_calendar"
+            android:drawablePadding="8dp"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp"
+            android:text="2024-07-21" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:gravity="end">
+
+            <Button
+                android:id="@+id/acceptButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="אשר"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@color/green_500"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/declineButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="דחה"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@color/red_500"/>
+        </LinearLayout>
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
