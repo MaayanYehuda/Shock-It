@@ -96,18 +96,51 @@ router.post("/addMarket", async (req, res) => {
   }
 });
 
+// קובץ הראוטר שלך (או קובץ השרת הראשי)
+
+// זה ה-endpoint שצריך לטפל בבקשת הפרופיל
+router.get("/profile", async (req, res) => {
+  const { location, date } = req.query;
+  if (!location || !date) {
+    return res.status(400).send("Location and date are required.");
+  }
+  try {
+    const result = await session.run(
+      `MATCH (m:Market {location: $location, date: $date})
+            OPTIONAL MATCH (m)-[:HAS_FARMER]->(f:Farmer)
+            RETURN m.name AS name, m.hours AS hours, COLLECT(f.name) AS farmers`,
+      { location, date }
+    );
+
+    if (result.records.length === 0) {
+      return res.status(404).json({
+        message: "Market not found with the specified location and date.",
+      });
+    }
+    const record = result.records[0];
+    const marketData = {
+      name: record.get("name") || location,
+      hours: record.get("hours") || "09:00 - 14:00",
+      farmers: record.get("farmers").filter(Boolean),
+    };
+    res.json(marketData); // <--- מחזיר אובייקט
+  } catch (error) {
+    console.error("Error fetching market profile:", error);
+    res.status(500).send("Error fetching market profile data.");
+  }
+});
+
+// זה ה-endpoint עבור רשימת כל השווקים/תאריכים
 router.get("/locations-dates", async (req, res) => {
   try {
     const result = await session.run(
       "MATCH (m:Market) RETURN m.location AS location, m.date AS date"
     );
-
     const markets = result.records.map((record) => ({
       location: record.get("location"),
       date: record.get("date"),
     }));
-
-    res.json(markets);
+    res.json(markets); // <--- מחזיר מערך
   } catch (error) {
     console.error("Error fetching market locations and dates:", error);
     res.status(500).send("Error fetching market data");
@@ -203,12 +236,12 @@ router.get("/invitations/:email", async (req, res) => {
   try {
     const result = await session.run(
       `MATCH (m:Market)-[r:INVITE {participate: false}]->(f:Person {email: $email})
-             RETURN m.id AS marketId, m.date AS date, m.location AS location`, // 🆕 הוסף marketId
+             RETURN m.id AS marketId, m.date AS date, m.location AS location`, 
       { email }
     );
 
     const invitations = result.records.map((record) => ({
-      marketId: record.get("marketId"), // 🆕
+      marketId: record.get("marketId"), 
       date: record.get("date"),
       location: record.get("location"),
     }));
