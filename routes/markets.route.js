@@ -236,12 +236,12 @@ router.get("/invitations/:email", async (req, res) => {
   try {
     const result = await session.run(
       `MATCH (m:Market)-[r:INVITE {participate: false}]->(f:Person {email: $email})
-             RETURN m.id AS marketId, m.date AS date, m.location AS location`, 
+             RETURN m.id AS marketId, m.date AS date, m.location AS location`,
       { email }
     );
 
     const invitations = result.records.map((record) => ({
-      marketId: record.get("marketId"), 
+      marketId: record.get("marketId"),
       date: record.get("date"),
       location: record.get("location"),
     }));
@@ -254,21 +254,64 @@ router.get("/invitations/:email", async (req, res) => {
 });
 
 // PUT - קבלת הזמנה (ייתכן שתצטרך להתאים אם תעבור ל-marketId)
+// קובץ הראוטר שלך (לדוגמה, marketsRouter.js)
+
 router.put("/acceptInvitation", async (req, res) => {
+  const { email, marketId } = req.body;
+  console.log("Incoming request for acceptInvitation. Body:", req.body);
+  try {
+    const result = await session.run(
+      `MATCH (m:Market {id: $marketId})-[r:INVITE]->(f:Person {email: $email}) 
+       SET r.participate = true
+       RETURN r`,
+      { email, marketId } // ה-email וה-marketId מגיעים לכאן
+    );
+
+    if (result.records.length > 0) {
+      res
+        .status(200)
+        .json({ success: true, message: "Invitation accepted successfully." });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Invitation not found or already accepted.",
+      });
+    }
+  } catch (error) {
+    console.error("Error accepting invitation:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error during acceptance",
+      error: error.message,
+    });
+  }
+});
+router.delete("/declineInvitation", async (req, res) => {
   const { email, marketId } = req.body;
 
   try {
-    // עדכן את ההזמנה ל-participate=true
-    await session.run(
-      `MATCH (m:Market {id: $marketId})-[r:INVITE]->(f:Person {email: $email}) 
-              SET r.participate = true`,
+    const result = await session.run(
+      `MATCH (m:Market {id: $marketId})-[r:INVITE]->(f:Person {email: $email})
+       DELETE r
+       RETURN r`,
       { email, marketId }
     );
 
-    res.status(200).json({ message: "Invitation accepted" });
+    if (result.records.length === 0) {
+      res.status(404).json({
+        success: false,
+        message: "Invitation not found or already declined.",
+      });
+    } else {
+      res
+        .status(200)
+        .json({ success: true, message: "Invitation declined successfully" });
+    }
   } catch (error) {
-    console.error("Error accepting invitation:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("Error declining invitation:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 });
 
