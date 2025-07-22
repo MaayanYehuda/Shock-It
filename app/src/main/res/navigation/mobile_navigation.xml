@@ -20,7 +20,7 @@
         android:id="@+id/farmerProfile"
         android:name="com.example.shock_it.ui.map.farmerProfile.farmerProfile"
         android:label="profile"
-        tools:layout="@layout/profile_farmer" />
+        tools:layout="@layout/fragment_farmer_profile" />
 </navigation>
 
 

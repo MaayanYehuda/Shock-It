@@ -16,5 +16,9 @@
             android:id="@+id/farmerProfile"
             android:icon="@drawable/ic_farmer"
             android:title="פרופיל"/>
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@drawable/ic_logout"
+            android:title="התנתק" />
     </group>
 </menu>

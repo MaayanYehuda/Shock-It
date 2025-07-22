@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.shock_it.InvitationAdapter;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -104,22 +105,83 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
     public void onAccept(HashMap<String, String> invitationData) {
         String marketName = invitationData.get("marketName");
         String marketId = invitationData.get("marketId");
-        String date = invitationData.get("date");
+        // String date = invitationData.get("date"); // אם תצטרך לשלוח תאריך גם ל-acceptInvitation
 
-        Toast.makeText(this, "קבלת הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
-        // TODO: Call your service to update the invitation status on the backend
-        removeInvitationFromList(invitationData);
+        Toast.makeText(this, "מאשר הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
+
+
+        new Thread(() -> {
+            try {
+                Log.d("InvitationsActivity", "Attempting to accept: Email=" + userEmail + ", MarketId=" + marketId);
+                String response = Service.acceptInvitation(userEmail, marketId);
+                JSONObject jsonResponse = new JSONObject(response);
+                Log.d("InvitationsActivity", "Raw server response (accept): " + (response != null ? response : "null"));
+
+                boolean success = jsonResponse.optBoolean("success", false);
+                String message = jsonResponse.optString("message", "פעולה הושלמה.");
+
+                runOnUiThread(() -> {
+                    if (success) {
+                        Toast.makeText(InvitationsActivity.this, "הזמנה אושרה בהצלחה! " + message, Toast.LENGTH_SHORT).show();
+                        removeInvitationFromList(invitationData);
+                    } else {
+                        Toast.makeText(InvitationsActivity.this, "שגיאה באישור ההזמנה: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
+
+            } catch (IOException e) {
+                Log.e("InvitationsActivity", "Network error accepting invitation: " + e.getMessage(), e);
+                runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה ברשת בעת אישור ההזמנה.", Toast.LENGTH_LONG).show());
+            } catch (Exception e) { // כולל JSONException
+                Log.e("InvitationsActivity", "Error accepting invitation: " + e.getMessage(), e);
+                runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה כללית באישור ההזמנה.", Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
+
 
     @Override
     public void onDecline(HashMap<String, String> invitationData) {
         String marketName = invitationData.get("marketName");
         String marketId = invitationData.get("marketId");
-        String date = invitationData.get("date");
+        // String date = invitationData.get("date"); // אם תצטרך לשלוח תאריך גם ל-declineInvitation, וודא שהוא נכלל במתודת Service.declineInvitation
 
-        Toast.makeText(this, "דחית הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
-        // TODO: Call your service to update the invitation status on the backend
-        removeInvitationFromList(invitationData);
+        Toast.makeText(this, "דוחה הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+            try {
+                // קריאה לשרת לדחיית ההזמנה
+                String response = Service.declineInvitation(userEmail, marketId);
+                JSONObject jsonResponse = new JSONObject(response);
+
+                // ודא שהשרת מחזיר מפתח 'success' או מפתח אחר המציין הצלחה/כישלון
+                boolean success = jsonResponse.optBoolean("success", false); // ברירת מחדל: false במקרה של שגיאה או אם המפתח לא קיים
+                String message = jsonResponse.optString("message", "פעולה הושלמה."); // הודעה מהשרת
+
+                runOnUiThread(() -> {
+                    if (success) {
+                        Toast.makeText(InvitationsActivity.this, "הזמנה נדחתה בהצלחה! " + message, Toast.LENGTH_SHORT).show();
+                        // הסר את ההזמנה מהרשימה רק לאחר אישור מהשרת
+                        removeInvitationFromList(invitationData);
+                    } else {
+                        Toast.makeText(InvitationsActivity.this, "שגיאה בדחיית ההזמנה: " + message, Toast.LENGTH_LONG).show();
+                    }
+                });
+
+            } catch (IOException e) {
+                // טיפול בשגיאות רשת
+                Log.e("InvitationsActivity", "Network error declining invitation: " + e.getMessage(), e);
+                runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה ברשת בעת דחיית ההזמנה.", Toast.LENGTH_LONG).show());
+            } catch (JSONException e) {
+                // טיפול בשגיאות ניתוח JSON
+                Log.e("InvitationsActivity", "JSON parsing error declining invitation: " + e.getMessage(), e);
+                runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה בניתוח נתונים מהשרת.", Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                // טיפול בשגיאות כלליות
+                Log.e("InvitationsActivity", "Unexpected error declining invitation: " + e.getMessage(), e);
+                runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה כללית בדחיית ההזמנה.", Toast.LENGTH_LONG).show());
+            }
+        }).start();
     }
 
     private void removeInvitationFromList(HashMap<String, String> invitationData) {
