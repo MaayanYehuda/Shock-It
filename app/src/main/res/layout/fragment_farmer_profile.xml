@@ -12,7 +12,6 @@
         android:padding="24dp"
         android:layoutDirection="rtl">
 
-        <!-- כותרת -->
         <TextView
             android:id="@+id/farmerTitle"
             android:layout_width="wrap_content"
@@ -23,7 +22,6 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- שם -->
         <TextView
             android:id="@+id/farmerNameLabel"
             android:layout_width="match_parent"
@@ -42,7 +40,6 @@
             android:textSize="16sp"
             android:textColor="#444444" />
 
-        <!-- מייל -->
         <TextView
             android:id="@+id/farmerEmailLabel"
             android:layout_width="match_parent"
@@ -61,7 +58,6 @@
             android:textSize="16sp"
             android:textColor="#444444" />
 
-        <!-- מוצרים -->
         <TextView
             android:id="@+id/productsLabel"
             android:layout_width="match_parent"
@@ -72,15 +68,13 @@
             android:textSize="16sp"
             android:textColor="#000000" />
 
-        <!-- שווקים -->
-
-        <TextView
-            android:id="@+id/farmerProducts"
+        <LinearLayout
+            android:id="@+id/farmerProductsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="אבוקדו, עגבניות, שמן זית"
-            android:textColor="#444444"
-            android:textSize="16sp" />
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp" />
+
         <Button
             android:id="@+id/addProductButton"
             android:layout_width="wrap_content"
@@ -101,13 +95,12 @@
             android:textSize="16sp"
             android:textColor="#000000" />
 
-        <TextView
-            android:id="@+id/farmerMarkets"
+        <LinearLayout
+            android:id="@+id/farmerMarketsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="שוק תוצרת מקומית בכרמיאל, שוק איכרים בקיבוץ עברון"
-            android:textSize="16sp"
-            android:textColor="#444444" />
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp" />
 
     </LinearLayout>
 </ScrollView>

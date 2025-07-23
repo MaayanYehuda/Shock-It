@@ -12,9 +12,12 @@ public class Farmer extends User{
         this.products = new HashMap<>();
         this.markets = new TreeSet<>();
     }
-    public void invite(Market market){
-        FarmerMarket farmerMarket = new FarmerMarket(market);
-        markets.add(farmerMarket);
+    public void addFarmerMarket(FarmerMarket farmerMarket) {
+        this.markets.add(farmerMarket);
+    }
+
+    public TreeSet<FarmerMarket> getMarkets() {
+        return this.markets;
     }
     public void addProduct(Item item, double price){
         products.put(item, price);

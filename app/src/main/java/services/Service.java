@@ -270,4 +270,12 @@ public class Service {
         Log.d("DeclineInvitation", "Server response: " + response); // שינוי לוג
         return response;
     }
+
+    public static String marketsByEmail(String email) throws IOException, JSONException{
+        String encodedEmail = URLEncoder.encode(email, "UTF-8");
+        String path = "markets/farmer-markets/" + encodedEmail;
+        String response = get(path);
+        Log.d("GetMarkets", "Server response: " + response);
+        return response;
+    }
 }
