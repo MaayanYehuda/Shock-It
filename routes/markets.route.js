@@ -107,8 +107,15 @@ router.get("/profile", async (req, res) => {
   try {
     const result = await session.run(
       `MATCH (m:Market {location: $location, date: $date})
-            OPTIONAL MATCH (m)-[:HAS_FARMER]->(f:Farmer)
-            RETURN m.name AS name, m.hours AS hours, COLLECT(f.name) AS farmers`,
+      OPTIONAL MATCH (founder:Person)-[:FOUNDER]->(m)
+      OPTIONAL MATCH (m)-[r:INVITE {participate: true}]->(invitedFarmer:Person) 
+      RETURN m.name AS name, 
+              m.hours AS hours, 
+              COLLECT(DISTINCT invitedFarmer.name) AS invitedAndParticipatingFarmers,
+              founder.email AS founderEmail,
+              founder.name AS founderName,
+              m.id AS marketId
+      `,
       { location, date }
     );
 
@@ -118,15 +125,83 @@ router.get("/profile", async (req, res) => {
       });
     }
     const record = result.records[0];
+
+    // איסוף כל השמות של החקלאים המוזמנים והמשתתפים
+    const allOtherFarmers = new Set();
+    record.get("invitedAndParticipatingFarmers").forEach((name) => {
+      if (name) allOtherFarmers.add(name);
+    });
+
     const marketData = {
       name: record.get("name") || location,
       hours: record.get("hours") || "09:00 - 14:00",
-      farmers: record.get("farmers").filter(Boolean),
+      founderName: record.get("founderName"),
+      founderEmail: record.get("founderEmail"),
+      otherFarmers: Array.from(allOtherFarmers),
+      marketId: record.get("marketId"),
     };
-    res.json(marketData); // <--- מחזיר אובייקט
+    res.json(marketData);
   } catch (error) {
     console.error("Error fetching market profile:", error);
     res.status(500).send("Error fetching market profile data.");
+  }
+});
+
+router.get("/farmer-markets/:email", async (req, res) => {
+  const { email } = req.params; // 🎯 קבלת המייל מהפרמטרים של ה-URL
+
+  if (!email) {
+    return res.status(400).send("Farmer email is required.");
+  }
+
+  try {
+    const result = await session.run(
+      `MATCH (f:Person {email: $email}) 
+        OPTIONAL MATCH (f)-[r:INVITE]->(m:Market) 
+        WHERE r.participate = true 
+
+      OPTIONAL MATCH (f)-[:FOUNDER]->(m_founder:Market) 
+
+       // אסוף את הפרטים הרלוונטיים משני סוגי השווקים
+        WITH f, COLLECT(DISTINCT {
+          id: m.id,
+          location: m.location,
+          date: m.date
+        }) AS invitedAndParticipatingMarkets,
+        COLLECT(DISTINCT {
+          id: m_founder.id,
+          location: m_founder.location,
+          date: m_founder.date
+        }) AS foundedMarkets
+
+       // שלב את הרשימות וודא שווקים ייחודיים
+       // אנחנו משלבים ולא אכפת לנו מ-participated כאן כי המטרה היא רשימת השווקים שהחקלאי פעיל בהם
+        UNWIND invitedAndParticipatingMarkets + foundedMarkets AS allMarketData
+        RETURN DISTINCT allMarketData.id AS marketId,
+                        allMarketData.location AS location,
+                        allMarketData.date AS date
+        ORDER BY date(allMarketData.date) ASC 
+      `,
+      { email }
+    );
+
+    if (result.records.length === 0) {
+      return res.json([]);
+    }
+
+    const farmerParticipatingMarkets = result.records.map((record) => ({
+      marketId: record.get("marketId"),
+      location: record.get("location"),
+      date: record.get("date"),
+    }));
+
+    res.json(farmerParticipatingMarkets);
+  } catch (error) {
+    console.error("Error fetching farmer's participating markets:", error);
+    res.status(500).json({
+      message: "Error fetching farmer's participating markets data.",
+      error: error.message,
+    });
   }
 });
 
