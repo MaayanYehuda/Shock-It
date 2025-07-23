@@ -199,7 +199,7 @@ public class Service {
         return get(path);
     }
     public static String getMarketProfile(String location, String date) throws IOException {
-        String path = "markets/profile?location=" + URLEncoder.encode(location, "UTF-8") + // <-- שינוי כאן
+        String path = "markets/profile?location=" + URLEncoder.encode(location, "UTF-8") +
                 "&date=" + URLEncoder.encode(date, "UTF-8");
         return get(path);
     }

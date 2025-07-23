@@ -27,7 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.shock_it.R;
-import com.example.shock_it.MarketProfileActivity; // 🆕 Import MarketProfileActivity
+// 🔴 תיקון: הסר את הייבוא המיותר של MarketProfileActivity
+// import com.example.shock_it.MarketProfileActivity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,11 @@ public class ManageMarketFragment extends Fragment {
     private Button buttonBackToAddMarket;
     private Button buttonGoToMarketProfile;
 
+    // 🆕 הוסף משתנים לשמירת המיקום והתאריך
+    private String marketLocation;
+    private String marketDate;
+
+
     @SuppressLint("WrongViewCast")
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -79,6 +85,9 @@ public class ManageMarketFragment extends Fragment {
 
         if (getArguments() != null) {
             marketId = getArguments().getString("marketId");
+            marketLocation = getArguments().getString("market_location");
+            marketDate = getArguments().getString("market_date");
+
             if (marketId != null) {
                 marketIdTextView.setText("Market ID: " + marketId);
             } else {
@@ -212,38 +221,13 @@ public class ManageMarketFragment extends Fragment {
             }
         });
 
-        // 🆕 Set OnClickListeners for the new buttons
         buttonBackToAddMarket.setOnClickListener(v -> {
-            // Option 1: Go back to the previous activity in the stack
-            // This is usually appropriate if ManageMarketFragment is hosted by an activity
-            // that was launched from AddMarketActivity.
             requireActivity().onBackPressed();
-            // Or, if you want to explicitly start AddMarketActivity and clear others:
-            // Intent intent = new Intent(requireContext(), AddMarketActivity.class);
-            // intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-            // startActivity(intent);
-            // requireActivity().finish(); // Finish the current activity
         });
 
         buttonGoToMarketProfile.setOnClickListener(v -> {
-            if (marketId == null || marketId.isEmpty()) {
-                Toast.makeText(requireContext(), "לא ניתן לעבור לפרופיל ללא Market ID. ⛔", Toast.LENGTH_SHORT).show();
-                return;
-            }
 
-            Intent intent = new Intent(requireContext(), MarketProfileActivity.class);
-            intent.putExtra("marketId", marketId); // Pass the market ID
-
-            // ⚠️ IMPORTANT: You need to get the actual location and date here.
-            // For now, I'm using placeholder values.
-            // You might need to fetch this data from your ViewModel or pass it as arguments
-            // to this fragment when it's created.
-            String marketLocation = "מיקום לדוגמה"; // Replace with actual location
-            String marketDate = "תאריך לדוגמה"; // Replace with actual date
-
-            intent.putExtra("location", marketLocation);
-            intent.putExtra("date", marketDate);
-            startActivity(intent);
+            requireActivity().onBackPressed();
         });
 
         return view;

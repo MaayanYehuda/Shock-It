@@ -27,17 +27,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.shock_it.InvitationsActivity;
-import com.example.shock_it.MarketProfileActivity; // ודא שאתה מייבא את זה
+import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
-import com.example.shock_it.databinding.ActivityFarmerInvitesBinding;
-import com.example.shock_it.ui.map.MarketAdapter; // ודא שאתה מייבא את זה
+import com.example.shock_it.databinding.ActivityFarmerInvitesBinding; // ודא שאתה צריך את זה
+import com.example.shock_it.ui.map.MarketAdapter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
-import com.google.android.gms.maps.model.Marker; // ייבוא של Marker
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -53,10 +53,9 @@ import java.util.HashMap;
 import classes.Market;
 import services.Service;
 
-// MapFragment צריך ליישם גם את MarketAdapter.OnMarketClickListener וגם את GoogleMap.OnMarkerClickListener
 public class MapFragment extends Fragment implements
-        MarketAdapter.OnMarketClickListener, // לחיצה על פריט ברשימה
-        GoogleMap.OnMarkerClickListener { // לחיצה על אייקון במפה
+        MarketAdapter.OnMarketClickListener,
+        GoogleMap.OnMarkerClickListener {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private FusedLocationProviderClient fusedLocationClient;
@@ -64,8 +63,8 @@ public class MapFragment extends Fragment implements
     private GoogleMap mGoogleMap;
     private MarketAdapter marketAdapter;
     private RecyclerView recyclerView;
-    private BottomSheetBehavior<View> bottomSheetBehavior; // הוספת המשתנה ל-BottomSheetBehavior
-    private HashMap<Marker, Market> markerMarketMap = new HashMap<>(); // מפה לקישור Marker ל-Market
+    private BottomSheetBehavior<View> bottomSheetBehavior;
+    private HashMap<Marker, Market> markerMarketMap = new HashMap<>();
 
     @Nullable
     @Override
@@ -78,20 +77,23 @@ public class MapFragment extends Fragment implements
 
         recyclerView = rootView.findViewById(R.id.marketsView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        // יצירת ה-MarketAdapter והעברת 'this' כ-listener
-        marketAdapter = new MarketAdapter(new ArrayList<>(), this); // **תיקון: מעבירים את ה-listener**
+        marketAdapter = new MarketAdapter(new ArrayList<>(), this);
         recyclerView.setAdapter(marketAdapter);
 
         // הוספת קו הפרדה בין פריטים
         DividerItemDecoration divider = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         ShapeDrawable dividerDrawable = new ShapeDrawable();
         dividerDrawable.setIntrinsicHeight(1);
-        dividerDrawable.getPaint().setColor(Color.parseColor("#DDDDDD")); // קו אפור-בהיר
+        dividerDrawable.getPaint().setColor(Color.parseColor("#DDDDDD"));
         divider.setDrawable(dividerDrawable);
         recyclerView.addItemDecoration(divider);
 
-        // קישור התצפית ל־ViewModel
+        // 🟢 הקריאה ל-loadMarkets() תתבצע רק פעם אחת ב-onResume()
+        // היא לא צריכה להיות פה או ב-onMapReady
+
+        // קישור התצפית ל־ViewModel - זה ישאר כפי שהוא, וזה מה שיעדכן את ה-UI
         mapViewModel.getMarkets().observe(getViewLifecycleOwner(), markets -> {
+            Log.d("MapFragment", "ViewModel markets updated. Updating UI.");
             marketAdapter.setMarketList(markets); // עדכן את רשימת השווקים באדפטר
             if (mGoogleMap != null) {
                 mGoogleMap.clear(); // נקה סמנים קודמים
@@ -107,6 +109,12 @@ public class MapFragment extends Fragment implements
                         markerMarketMap.put(marker, market); // קשר את המרקר לאובייקט ה-Market
                     }
                 }
+                // אופציונלי: התקרב למיקום השוק הראשון אם יש, רק אחרי שהשווקים מוספו למפה
+                if (!markets.isEmpty()) {
+                    Market firstMarket = markets.get(0);
+                    LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
+                    mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 12)); // זום קצת פחות צפוף
+                }
             }
         });
 
@@ -116,7 +124,7 @@ public class MapFragment extends Fragment implements
         if (mapFragment != null) {
             mapFragment.getMapAsync(googleMap -> {
                 mGoogleMap = googleMap;
-                mGoogleMap.setOnMarkerClickListener(this); // **הגדרה חשובה: MapFragment הוא ה-listener של המרקרים**
+                mGoogleMap.setOnMarkerClickListener(this);
 
                 try {
                     boolean success = googleMap.setMapStyle(
@@ -129,7 +137,7 @@ public class MapFragment extends Fragment implements
                 }
 
                 checkLocationPermission();
-                loadMarkets(); // טען את השווקים גם למפה וגם ל-ViewModel
+                // 🔴 הסר את הקריאה ל-loadMarkets() מכאן! היא תופעל ב-onResume.
             });
         }
 
@@ -140,12 +148,11 @@ public class MapFragment extends Fragment implements
         bottomSheetBehavior.setHideable(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        // כפתור הוספת שוק (אם רלוונטי ל-MapFragment)
-        FloatingActionButton addMarketButton = rootView.findViewById(R.id.messages); // Assuming R.id.messages is your invites button
-        if (addMarketButton != null) {
-            addMarketButton.setOnClickListener(v -> {
-                Log.d("Invitations:", "Navigating to Invitations Activity...");
-                // Create an Intent to start InvitationsActivity
+        // כפתור הזמנות
+        FloatingActionButton invitesButton = rootView.findViewById(R.id.messages); // Assuming R.id.messages is your invites button
+        if (invitesButton != null) {
+            invitesButton.setOnClickListener(v -> {
+                Log.d("MapFragment", "Navigating to Invitations Activity...");
                 Intent intent = new Intent(requireContext(), InvitationsActivity.class);
                 startActivity(intent);
             });
@@ -154,6 +161,13 @@ public class MapFragment extends Fragment implements
         }
 
         return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 🟢 טען את השווקים כאן. זה יבטיח שהנתונים נטענים מחדש (אם צריך) בכל פעם שהפרגמנט מוצג למשתמש
+        loadMarkets();
     }
 
     private void checkLocationPermission() {
@@ -201,11 +215,10 @@ public class MapFragment extends Fragment implements
         }
     }
 
-    // טוען את כל השווקים מהשרת
     private void loadMarkets() {
         new Thread(() -> {
             try {
-                String response = Service.getMarkets(); // קריאה לשירות השרת
+                String response = Service.getMarkets();
                 JSONArray jsonArray = new JSONArray(response);
                 List<Market> markets = new ArrayList<>();
                 for (int i = 0; i < jsonArray.length(); i++) {
@@ -223,11 +236,13 @@ public class MapFragment extends Fragment implements
                 }
 
                 requireActivity().runOnUiThread(() -> {
-                    // עדכן את ה-ViewModel (אם קיים), מה שיפעיל את ה-Observer לעדכון המפה וה-RecyclerView
+                    // 🟢 תמיד עדכן את ה-ViewModel. ה-Observer שלו הוא זה שיעדכן את ה-UI.
                     if(mapViewModel != null) {
-                        mapViewModel.setMarkets(markets); // שלח את הרשימה ל-ViewModel
+                        mapViewModel.setMarkets(markets);
+                        Log.d("MapFragment", "Markets set to ViewModel. Observer should update UI.");
                     } else {
-                        // גיבוי אם אין ViewModel, עדכן ישירות את האדפטר והמפה
+                        // זהו מקרה גיבוי שלא אמור לקרות אם ה-ViewModel מאותחל נכון
+                        Log.w("MapFragment", "ViewModel is null, updating UI directly (fallback).");
                         marketAdapter.setMarketList(markets);
                         if (mGoogleMap != null) {
                             mGoogleMap.clear();
@@ -239,17 +254,10 @@ public class MapFragment extends Fragment implements
                                         .title(market.getLocation())
                                         .icon(BitmapDescriptorFactory.fromResource(R.drawable.market)));
                                 if (marker != null) {
-                                    markerMarketMap.put(marker, market); // קשר את המרקר לאובייקט ה-Market
+                                    markerMarketMap.put(marker, market);
                                 }
                             }
                         }
-                    }
-
-                    // אופציונלי: התקרב למיקום השוק הראשון אם יש
-                    if (!markets.isEmpty() && mGoogleMap != null) {
-                        Market firstMarket = markets.get(0);
-                        LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
-                        mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 15));
                     }
                 });
             } catch (Exception e) {
@@ -261,34 +269,25 @@ public class MapFragment extends Fragment implements
         }).start();
     }
 
-    // יישום מתודת ה-OnMarketClickListener (לחיצה על פריט ברשימה)
     @Override
     public void onMarketClick(Market market) {
-        // כאשר לוחצים על פריט ברשימה, העבר את המפה למיקום השוק
         Log.d("MapFragment", "List item clicked: " + market.getLocation() + ", " + market.getDate());
-
         if (mGoogleMap != null) {
             LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
             mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
-            // אופציונלי: שנה את מצב ה-BottomSheet (לדוגמה, הרחב אותו או סגור חלקית)
-            // bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // סגור את הרשימה לאחר לחיצה
         }
-
-        // חשוב: לא פותחים את MarketProfileActivity מכאן. זה יקרה בלחיצה על המרקר.
     }
 
-    // יישום מתודת ה-OnMarkerClickListener (לחיצה על אייקון במפה)
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        // כאשר לוחצים על אייקון במפה, פתח את MarketProfileActivity
-        Market market = markerMarketMap.get(marker); // קבל את אובייקט ה-Market מהמפה
+        Market market = markerMarketMap.get(marker);
         if (market != null) {
             Log.d("MapFragment", "Marker clicked: " + market.getLocation());
-
             Intent intent = new Intent(requireContext(), MarketProfileActivity.class);
             intent.putExtra("location", market.getLocation());
             if (market.getDate() != null) {
-                intent.putExtra("date", market.getDate().toString()); // המרת LocalDate לסטרינג
+                intent.putExtra("date", market.getDate().toString());
             } else {
                 intent.putExtra("date", "Unknown Date");
             }
@@ -296,6 +295,6 @@ public class MapFragment extends Fragment implements
         } else {
             Log.w("MapFragment", "Market object not found for clicked marker.");
         }
-        return true; // החזר true כדי לציין שטיפלנו באירוע הלחיצה
+        return true;
     }
 }

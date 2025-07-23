@@ -41,48 +41,6 @@
                 app:contentPadding="16dp"
                 app:cardBackgroundColor="#FFFFFF">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="הזמנת חקלאי לשוק:"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#34495E"
-                        android:layout_marginBottom="16dp"/>
-
-                    <EditText
-                        android:id="@+id/editTextFarmerEmail"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="מייל החקלאי להזמנה"
-                        android:inputType="textEmailAddress"
-                        android:layout_marginBottom="16dp"
-                        android:minHeight="48dp"
-                        android:background="@drawable/rounded_edittext_background"
-                        android:paddingStart="12dp"
-                        android:paddingEnd="12dp"
-                        android:textColorHint="#95A5A6"
-                        android:textColor="#2C3E50"/>
-
-                    <Button
-                        android:id="@+id/buttonInviteFarmer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="הזמן חקלאי"
-                        android:backgroundTint="#2ECC71"
-                        android:textColor="#FFFFFF"
-                        android:paddingTop="12dp"
-                        android:paddingBottom="12dp"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        style="@style/Widget.MaterialComponents.Button"/>
-
-                </LinearLayout>
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
@@ -155,6 +113,49 @@
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="הזמנת חקלאי לשוק:"
+                    android:textColor="#34495E"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/editTextFarmerEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:background="@drawable/rounded_edittext_background"
+                    android:hint="מייל החקלאי להזמנה"
+                    android:inputType="textEmailAddress"
+                    android:minHeight="48dp"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:textColor="#2C3E50"
+                    android:textColorHint="#95A5A6" />
+
+                <Button
+                    android:id="@+id/buttonInviteFarmer"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:backgroundTint="#2ECC71"
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:text="הזמן חקלאי"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
 
             <Button
                 android:id="@+id/buttonBackToAddMarket"
