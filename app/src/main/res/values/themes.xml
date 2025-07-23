@@ -15,4 +15,5 @@
     <style name="Theme.ShockIt.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
 
     <style name="Theme.ShockIt.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
 </resources>

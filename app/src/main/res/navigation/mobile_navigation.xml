@@ -8,18 +8,19 @@
     <fragment
         android:id="@+id/nav_map"
         android:name="com.example.shock_it.ui.map.map.MapFragment"
-        android:label="Map"
+        android:label="מפת שווקים"
         tools:layout="@layout/fragment_map" />
     <fragment
         android:id="@+id/nav_add_market"
         android:name="com.example.shock_it.ui.map.addMarket.AddMarketFragment"
-        android:label="Add Market"
-        tools:layout="@layout/fragment_add_market" />
+        android:label="הוספת שוק חדש"
+        tools:layout="@layout/fragment_add_market"
+        />
 
     <fragment
         android:id="@+id/farmerProfile"
         android:name="com.example.shock_it.ui.map.farmerProfile.farmerProfile"
-        android:label="profile"
+        android:label="פרופיל חקלאי"
         tools:layout="@layout/fragment_farmer_profile" />
 </navigation>
 

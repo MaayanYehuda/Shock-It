@@ -51,11 +51,11 @@ public class FarmerHomeActivity extends AppCompatActivity implements NavigationV
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.farmer_home, menu); // This is for the Toolbar's overflow menu
-        return true;
-    }
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.farmer_home, menu); // This is for the Toolbar's overflow menu
+//        return false;
+//    }
 
     @Override
     public boolean onSupportNavigateUp() {

@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton; // Import ImageButton
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -12,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-// Correct import for the InvitationAdapter
 import com.example.shock_it.InvitationAdapter;
 
 import org.json.JSONArray;
@@ -32,17 +32,18 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
     private TextView noInvitationsMessage;
     private InvitationAdapter invitationAdapter;
     private String userEmail;
+    private ImageButton backButton; // Declare ImageButton
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_farmer_invites); // Ensure this XML file exists and is named correctly
+        setContentView(R.layout.activity_farmer_invites);
 
         invitationsRecyclerView = findViewById(R.id.invitationsRecyclerView);
         noInvitationsMessage = findViewById(R.id.noInvitationsMessage);
+        backButton = findViewById(R.id.backButton); // Initialize the back button
 
         invitationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        // Initialize InvitationAdapter, passing 'this' as listener
         invitationAdapter = new InvitationAdapter(new ArrayList<>(), this);
         invitationsRecyclerView.setAdapter(invitationAdapter);
 
@@ -51,9 +52,12 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
 
         if (userEmail == null || userEmail.isEmpty()) {
             Toast.makeText(this, "שגיאה: אימייל המשתמש לא נמצא. אנא התחבר מחדש.", Toast.LENGTH_LONG).show();
-            finish(); // Close activity if no email
+            finish();
             return;
         }
+
+        // Set OnClickListener for the back button
+        backButton.setOnClickListener(v -> onBackPressed());
 
         loadInvitations(userEmail);
     }
@@ -74,7 +78,7 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
                         invitationData.put("marketId", invJson.optString("marketId"));
                         invitationData.put("date", invJson.optString("date"));
                         invitationData.put("location", invJson.optString("location"));
-                        invitationData.put("marketName", invJson.optString("name", invJson.optString("location"))); // Use "name" if available, else "location"
+                        invitationData.put("marketName", invJson.optString("name", invJson.optString("location")));
 
                         invitations.add(invitationData);
                     }
@@ -105,10 +109,8 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
     public void onAccept(HashMap<String, String> invitationData) {
         String marketName = invitationData.get("marketName");
         String marketId = invitationData.get("marketId");
-        // String date = invitationData.get("date"); // אם תצטרך לשלוח תאריך גם ל-acceptInvitation
 
         Toast.makeText(this, "מאשר הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
-
 
         new Thread(() -> {
             try {
@@ -132,36 +134,31 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
             } catch (IOException e) {
                 Log.e("InvitationsActivity", "Network error accepting invitation: " + e.getMessage(), e);
                 runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה ברשת בעת אישור ההזמנה.", Toast.LENGTH_LONG).show());
-            } catch (Exception e) { // כולל JSONException
+            } catch (Exception e) {
                 Log.e("InvitationsActivity", "Error accepting invitation: " + e.getMessage(), e);
                 runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה כללית באישור ההזמנה.", Toast.LENGTH_LONG).show());
             }
         }).start();
     }
 
-
     @Override
     public void onDecline(HashMap<String, String> invitationData) {
         String marketName = invitationData.get("marketName");
         String marketId = invitationData.get("marketId");
-        // String date = invitationData.get("date"); // אם תצטרך לשלוח תאריך גם ל-declineInvitation, וודא שהוא נכלל במתודת Service.declineInvitation
 
         Toast.makeText(this, "דוחה הזמנה לשוק: " + marketName, Toast.LENGTH_SHORT).show();
 
         new Thread(() -> {
             try {
-                // קריאה לשרת לדחיית ההזמנה
                 String response = Service.declineInvitation(userEmail, marketId);
                 JSONObject jsonResponse = new JSONObject(response);
 
-                // ודא שהשרת מחזיר מפתח 'success' או מפתח אחר המציין הצלחה/כישלון
-                boolean success = jsonResponse.optBoolean("success", false); // ברירת מחדל: false במקרה של שגיאה או אם המפתח לא קיים
-                String message = jsonResponse.optString("message", "פעולה הושלמה."); // הודעה מהשרת
+                boolean success = jsonResponse.optBoolean("success", false);
+                String message = jsonResponse.optString("message", "פעולה הושלמה.");
 
                 runOnUiThread(() -> {
                     if (success) {
                         Toast.makeText(InvitationsActivity.this, "הזמנה נדחתה בהצלחה! " + message, Toast.LENGTH_SHORT).show();
-                        // הסר את ההזמנה מהרשימה רק לאחר אישור מהשרת
                         removeInvitationFromList(invitationData);
                     } else {
                         Toast.makeText(InvitationsActivity.this, "שגיאה בדחיית ההזמנה: " + message, Toast.LENGTH_LONG).show();
@@ -169,15 +166,12 @@ public class InvitationsActivity extends AppCompatActivity implements Invitation
                 });
 
             } catch (IOException e) {
-                // טיפול בשגיאות רשת
                 Log.e("InvitationsActivity", "Network error declining invitation: " + e.getMessage(), e);
                 runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה ברשת בעת דחיית ההזמנה.", Toast.LENGTH_LONG).show());
             } catch (JSONException e) {
-                // טיפול בשגיאות ניתוח JSON
                 Log.e("InvitationsActivity", "JSON parsing error declining invitation: " + e.getMessage(), e);
                 runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה בניתוח נתונים מהשרת.", Toast.LENGTH_LONG).show());
             } catch (Exception e) {
-                // טיפול בשגיאות כלליות
                 Log.e("InvitationsActivity", "Unexpected error declining invitation: " + e.getMessage(), e);
                 runOnUiThread(() -> Toast.makeText(InvitationsActivity.this, "שגיאה כללית בדחיית ההזמנה.", Toast.LENGTH_LONG).show());
             }

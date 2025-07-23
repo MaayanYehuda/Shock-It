@@ -1,7 +1,9 @@
 package com.example.shock_it;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color; // Import Color class
@@ -58,6 +60,19 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SharedPreferences sharedPref = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        String userEmail = sharedPref.getString("user_email", null); // "user_email" is the key
+
+        if (userEmail != null) {
+            // If user_email exists, redirect to FarmerHomeActivity
+            Log.d("MainActivity", "User email found: " + userEmail + ". Redirecting to FarmerHomeActivity.");
+            Intent intent = new Intent(this, FarmerHomeActivity.class);
+            startActivity(intent);
+            finish(); // Finish MainActivity so user can't go back to it from FarmerHomeActivity
+            return; // Stop further execution of onCreate
+        }
+        Log.d("MainActivity", "User email found: " + userEmail + ". Redirecting to FarmerHomeActivity.");
+
         setContentView(R.layout.activity_main);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -221,7 +236,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    // --- Implement the GoogleMap.OnMarkerClickListener interface method (for map markers) ---
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
         // When a map marker is clicked, open MarketProfileActivity
