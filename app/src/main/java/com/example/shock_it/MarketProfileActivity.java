@@ -48,7 +48,7 @@ public class MarketProfileActivity extends AppCompatActivity {
     ImageView marketImage;
     TextView marketName, marketLocation, marketHours, marketDate;
     LinearLayout farmersListContainer;
-    LinearLayout marketProductsListContainer; // הצהרה על הקונטיינר החדש
+    // LinearLayout marketProductsListContainer; // הצהרה על הקונטיינר הישן - הוסר!
     FloatingActionButton fabAddProduct;
 
     private View marketProfileContentScrollView;
@@ -79,7 +79,7 @@ public class MarketProfileActivity extends AppCompatActivity {
         marketHours = findViewById(R.id.marketHours);
         marketDate = findViewById(R.id.marketDate);
         farmersListContainer = findViewById(R.id.farmersList);
-        marketProductsListContainer = findViewById(R.id.marketProductsList); // איתחול הקונטיינר החדש
+        // marketProductsListContainer = findViewById(R.id.marketProductsList); // איתחול הקונטיינר הישן - הוסר!
         backToMainButton = findViewById(R.id.backToMainButton);
         navigateButton = findViewById(R.id.navigateButton);
         manageMarketButton = findViewById(R.id.manageMarketButton);
@@ -103,8 +103,10 @@ public class MarketProfileActivity extends AppCompatActivity {
             finish();
         });
 
+        // חשוב: וודא שזה מתעדכן למיקום השוק בפועל מהנתונים שחוזרים מהשרת
+        // כרגע זה קבוע, צריך לשנות את זה לשימוש ב latitude ו- longitude אם הם מוחזרים
         navigateButton.setOnClickListener(v -> {
-            openWazeNavigation("32.0853,34.7818"); // חשוב: וודא שזה מתעדכן למיקום השוק בפועל
+            openWazeNavigation("32.0853,34.7818");
         });
 
         manageMarketButton.setOnClickListener(v -> {
@@ -191,12 +193,27 @@ public class MarketProfileActivity extends AppCompatActivity {
                 String founderEmail = json.optString("founderEmail", null);
                 marketId = json.optString("id", null);
 
-                // ⭐ קבלת מערך החקלאים המשתתפים (עם מוצריהם) ⭐
                 JSONArray participatingFarmersArray = json.optJSONArray("participatingFarmers");
-                // ⭐ קבלת מערך מוצרי השוק (עם פרטי החקלאי המציע) ⭐
                 JSONArray marketProductsArray = json.optJSONArray("marketProducts");
 
-                // משתנה לקביעת נראות ה-FAB
+                // --- לוגיקה חדשה: איסוף מוצרים לפי חקלאי ---
+                // מפה שתחזיק רשימת מוצרים לכל חקלאי לפי אימייל
+                Map<String, List<JSONObject>> farmerProductsMap = new HashMap<>();
+                if (marketProductsArray != null) {
+                    for (int i = 0; i < marketProductsArray.length(); i++) {
+                        JSONObject productObj = marketProductsArray.getJSONObject(i);
+                        String offeringFarmerEmail = productObj.optString("offeringFarmerEmail");
+                        if (offeringFarmerEmail != null && !offeringFarmerEmail.isEmpty()) {
+                            if (!farmerProductsMap.containsKey(offeringFarmerEmail)) {
+                                farmerProductsMap.put(offeringFarmerEmail, new ArrayList<>());
+                            }
+                            farmerProductsMap.get(offeringFarmerEmail).add(productObj);
+                        }
+                    }
+                }
+                // --- סוף לוגיקת איסוף מוצרים ---
+
+
                 boolean isUserParticipating = false;
 
                 // 1. בדוק אם המשתמש הוא המייסד של השוק
@@ -205,8 +222,7 @@ public class MarketProfileActivity extends AppCompatActivity {
                     Log.d("FAB_VISIBILITY", "User is founder. FAB should be visible.");
                 }
 
-                // 2. בדוק אם המשתמש הוא חקלאי משתתף דרך קשר 'INVITE' או 'WILL_BE'
-                //    זה אומר שהשרת כבר אישר את השתתפותו.
+                // 2. בדוק אם המשתמש הוא חקלאי משתתף דרך קשר 'INVITE' (או אם המוצרים שלו כבר בשוק)
                 if (!isUserParticipating && participatingFarmersArray != null) {
                     for (int i = 0; i < participatingFarmersArray.length(); i++) {
                         JSONObject farmerObj = participatingFarmersArray.getJSONObject(i);
@@ -217,6 +233,12 @@ public class MarketProfileActivity extends AppCompatActivity {
                         }
                     }
                 }
+                // בנוסף, אם למשתמש יש כבר מוצרים בשוק (כלומר, הוא הציע אותם והם ב-marketProductsArray), הוא נחשב משתתף
+                if (!isUserParticipating && userEmail != null && farmerProductsMap.containsKey(userEmail)) {
+                    isUserParticipating = true;
+                    Log.d("FAB_VISIBILITY", "User has products in marketProductsArray. FAB should be visible.");
+                }
+
 
                 final boolean finalIsUserParticipating = isUserParticipating;
 
@@ -249,24 +271,35 @@ public class MarketProfileActivity extends AppCompatActivity {
 
                     // הצג מייסד (אם יש)
                     if (founderName != null && !founderName.isEmpty()) {
-                        addFarmerToDisplay(founderName, founderEmail, null, true, null);
+                        // הוסף את מוצרי המייסד מתוך המפה
+                        JSONArray founderProductsJsonArray = null;
+                        if (farmerProductsMap.containsKey(founderEmail)) {
+                            founderProductsJsonArray = new JSONArray(farmerProductsMap.get(founderEmail));
+                        }
+                        addFarmerToDisplay(founderName, founderEmail, founderProductsJsonArray, true);
                         atLeastOneFarmerDisplayed = true;
                     }
 
-                    // הצג חקלאים משתתפים אחרים
+                    // הצג חקלאים משתתפים אחרים (שאינם המייסד)
                     if (participatingFarmersArray != null && participatingFarmersArray.length() > 0) {
                         for (int i = 0; i < participatingFarmersArray.length(); i++) {
                             try {
                                 JSONObject farmerObj = participatingFarmersArray.getJSONObject(i);
                                 String farmerName = farmerObj.optString("name");
                                 String farmerEmailInMarket = farmerObj.optString("email");
-                                JSONArray productsArray = farmerObj.optJSONArray("products");
 
                                 // וודא שהמייסד לא מוצג שוב אם הוא גם ברשימת ה-INVITE
                                 if (founderEmail != null && founderEmail.equals(farmerEmailInMarket)) {
                                     continue; // אם ה-founder כבר טופל בנפרד, דלג עליו כאן
                                 }
-                                addFarmerToDisplay(farmerName, farmerEmailInMarket, productsArray, false, null);
+
+                                // קח את רשימת המוצרים הספציפית לחקלאי הזה מהמפה
+                                JSONArray farmerSpecificProductsArray = null;
+                                if (farmerProductsMap.containsKey(farmerEmailInMarket)) {
+                                    farmerSpecificProductsArray = new JSONArray(farmerProductsMap.get(farmerEmailInMarket));
+                                }
+
+                                addFarmerToDisplay(farmerName, farmerEmailInMarket, farmerSpecificProductsArray, false);
                                 atLeastOneFarmerDisplayed = true;
 
                             } catch (JSONException e) {
@@ -284,64 +317,41 @@ public class MarketProfileActivity extends AppCompatActivity {
                         farmersListContainer.addView(noFarmers);
                     }
 
-                    // ⭐ הצגת מוצרי השוק ⭐
-                    marketProductsListContainer.removeAllViews();
-                    if (marketProductsArray != null && marketProductsArray.length() > 0) {
-                        TextView marketProductsTitle = new TextView(MarketProfileActivity.this);
-                        marketProductsTitle.setText("מוצרים המוצעים בשוק:");
-                        marketProductsTitle.setTextSize(16);
-                        marketProductsTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-                        marketProductsTitle.setPadding(0, 16, 0, 8);
-                        marketProductsListContainer.addView(marketProductsTitle);
-
-                        for (int i = 0; i < marketProductsArray.length(); i++) {
-                            try {
-                                JSONObject productObj = marketProductsArray.getJSONObject(i);
-                                String productName = productObj.optString("name", "מוצר ללא שם");
-                                double productPrice = productObj.optDouble("price", 0.0);
-                                String offeringFarmerName = productObj.optString("offeringFarmerName", "לא ידוע");
-
-                                TextView productTv = new TextView(MarketProfileActivity.this);
-                                String productText = "• " + productName + " (" + String.format("%.2f", productPrice) + " ₪) מבית " + offeringFarmerName;
-                                productTv.setText(productText);
-                                productTv.setTextSize(15);
-                                productTv.setPadding(0, 4, 0, 4);
-                                productTv.setTextColor(getResources().getColor(android.R.color.black));
-                                marketProductsListContainer.addView(productTv);
-
-                            } catch (JSONException e) {
-                                Log.e("MarketProfileActivity", "Error parsing market product object: " + e.getMessage(), e);
-                            }
-                        }
-                    } else {
-                        TextView noMarketProducts = new TextView(MarketProfileActivity.this);
-                        noMarketProducts.setText("אין מוצרים המוצעים ישירות מהשוק.");
-                        noMarketProducts.setTextSize(15);
-                        noMarketProducts.setPadding(0, 4, 0, 4);
-                        noMarketProducts.setTextColor(getResources().getColor(android.R.color.darker_gray));
-                        marketProductsListContainer.addView(noMarketProducts);
-                    }
+                    // הסרת הצגת מוצרי השוק הגלובליים
+                    // marketProductsListContainer.removeAllViews(); // הוסר
+                    // if (marketProductsArray != null && marketProductsArray.length() > 0) { // הוסר
+                    //     TextView marketProductsTitle = new TextView(MarketProfileActivity.this); // הוסר
+                    //     marketProductsTitle.setText("מוצרים המוצעים בשוק:"); // הוסר
+                    //     marketProductsTitle.setTextSize(16); // הוסר
+                    //     marketProductsTitle.setTypeface(null, android.graphics.Typeface.BOLD); // הוסר
+                    //     marketProductsTitle.setPadding(0, 16, 0, 8); // הוסר
+                    //     marketProductsListContainer.addView(marketProductsTitle); // הוסר
+                    //     // ... לולאה להצגת מוצרים גלובליים - הוסרה
+                    // } else { // הוסר
+                    //     TextView noMarketProducts = new TextView(MarketProfileActivity.this); // הוסר
+                    //     noMarketProducts.setText("אין מוצרים המוצעים ישירות מהשוק."); // הוסר
+                    //     // ... הוסרה הלוגיקה להצגת הודעה זו
+                    // }
                 });
 
             } catch (IOException e) {
                 Log.e("MarketProfileActivity", "Network error loading market profile: " + e.getMessage(), e);
                 runOnUiThread(() -> {
                     Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: בעיית רשת. נסה שוב.", Toast.LENGTH_LONG).show();
-                    // הסתר את ה-FAB במקרה של שגיאה
                     fabAddProduct.setVisibility(View.GONE);
                 });
             } catch (JSONException e) {
                 Log.e("MarketProfileActivity", "JSON parsing error loading market profile: " + e.getMessage(), e);
                 runOnUiThread(() -> {
                     Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: פורמט נתונים שגוי.", Toast.LENGTH_LONG).show();
-                    // הסתר את ה-FAB במקרה של שגיאה
                     fabAddProduct.setVisibility(View.GONE);
                 });
             }
         }).start();
     }
 
-    private void addFarmerToDisplay(String farmerName, String farmerEmail, @Nullable JSONArray productsArray, boolean isFounder, @Nullable Map<String, Double> productsFromFounderCollection) {
+    // הוסר הפרמטר האחרון 'productsFromFounderCollection' מכיוון שהוא לא נחוץ יותר
+    private void addFarmerToDisplay(String farmerName, String farmerEmail, @Nullable JSONArray productsArray, boolean isFounder) {
         CardView farmerCard = new CardView(this);
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -375,24 +385,25 @@ public class MarketProfileActivity extends AppCompatActivity {
         farmerNameTv.setPadding(0, 0, 0, 4);
         cardContentLayout.addView(farmerNameTv);
 
-        TextView productsTitle = new TextView(this);
-        productsTitle.setText("מוצרים המוצעים על ידו:");
-        productsTitle.setTextSize(14);
-        productsTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-        productsTitle.setPadding(0, 8, 0, 4);
-        cardContentLayout.addView(productsTitle);
-
         LinearLayout farmerProductsLayout = new LinearLayout(this);
         farmerProductsLayout.setOrientation(LinearLayout.VERTICAL);
-        farmerProductsLayout.setPadding(16, 0, 0, 0);
+        farmerProductsLayout.setPadding(16, 0, 0, 0); // הזחה קלה
         cardContentLayout.addView(farmerProductsLayout);
 
+
         if (productsArray != null && productsArray.length() > 0) {
+            TextView productsTitle = new TextView(this);
+            productsTitle.setText("מוצרים המוצעים על ידו:");
+            productsTitle.setTextSize(14);
+            productsTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+            productsTitle.setPadding(0, 8, 0, 4);
+            farmerProductsLayout.addView(productsTitle); // הוספה ל-farmerProductsLayout
+
             for (int i = 0; i < productsArray.length(); i++) {
                 try {
                     JSONObject productObj = productsArray.getJSONObject(i);
                     String productName = productObj.optString("name", "מוצר ללא שם");
-                    double productPrice = productObj.optDouble("marketPrice", 0.0);
+                    double productPrice = productObj.optDouble("price", 0.0); // וודא שהשדה הוא 'price' מהשרת
 
                     TextView productTv = new TextView(this);
                     productTv.setText("  - " + productName + " (" + String.format("%.2f", productPrice) + " ₪)");
