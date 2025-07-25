@@ -278,4 +278,13 @@ public class Service {
         Log.d("GetMarkets", "Server response: " + response);
         return response;
     }
+    public static String addProductToMarketWithWillBe(String farmerEmail, String marketId, String itemName, double price) throws IOException, JSONException {
+        String path = String.format("markets/%s/add-product", marketId); // נתיב יחסי ל-BASE_URL
+        JSONObject jsonBody = new JSONObject();
+        jsonBody.put("farmerEmail", farmerEmail);
+        jsonBody.put("itemName", itemName);
+        jsonBody.put("price", price);
+        return post(path, jsonBody.toString());
+    }
+
 }
