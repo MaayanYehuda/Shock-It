@@ -96,112 +96,100 @@ router.post("/addMarket", async (req, res) => {
   }
 });
 
-// קובץ הראוטר שלך (או קובץ השרת הראשי)
-
-// זה ה-endpoint שצריך לטפל בבקשת הפרופיל
 router.get("/profile", async (req, res) => {
   const { location, date } = req.query;
+
   if (!location || !date) {
-    return res.status(400).send("Location and date are required.");
+    return res.status(400).send("מיקום ותאריך נדרשים."); // הודעה בעברית
   }
+
+  const session = driver.session();
   try {
     const result = await session.run(
-      `MATCH (m:Market {location: $location, date: $date})
-      OPTIONAL MATCH (founder:Person)-[:FOUNDER]->(m)
-      OPTIONAL MATCH (m)-[r:INVITE {participate: true}]->(invitedFarmer:Person) 
-      RETURN m.name AS name, 
-              m.hours AS hours, 
-              COLLECT(DISTINCT invitedFarmer.name) AS invitedAndParticipatingFarmers,
-              founder.email AS founderEmail,
-              founder.name AS founderName,
-              m.id AS marketId
-      `,
-      { location, date }
-    );
+      `
+      MATCH (m:Market {location: $location, date: $date}) // חשוב: שימוש בפרמטרים
+      OPTIONAL MATCH (f_founder:Person)-[:FOUNDER]->(m)
 
-    if (result.records.length === 0) {
-      return res.status(404).json({
-        message: "Market not found with the specified location and date.",
-      });
-    }
-    const record = result.records[0];
+      // אוסף את פרטי החקלאים המשתתפים (אלו שהוזמנו והשתתפותם אושרה)
+      // כיוון הקשר: Person <-INVITE- Market (השוק מזמין את האדם)
+      OPTIONAL MATCH (p_participant:Person)<-[invited:INVITE]-(m)
+      WHERE invited.participate = true // ודא שמאפיין זה קיים על קשר INVITE
 
-    // איסוף כל השמות של החקלאים המוזמנים והמשתתפים
-    const allOtherFarmers = new Set();
-    record.get("invitedAndParticipatingFarmers").forEach((name) => {
-      if (name) allOtherFarmers.add(name);
-    });
+      // כאן אנו אוספים רק את פרטי החקלאים המשתתפים.
+      // המוצרים שלהם שישתתפו בשוק יופיעו תחת 'marketProducts'.
+      WITH m, f_founder, COLLECT(DISTINCT {
+          name: p_participant.name,
+          email: p_participant.email
+          // שימו לב: אין כאן 'products'. המוצרים יטופלו בנפרד למטה.
+      }) AS participatingFarmers
 
-    const marketData = {
-      name: record.get("name") || location,
-      hours: record.get("hours") || "09:00 - 14:00",
-      founderName: record.get("founderName"),
-      founderEmail: record.get("founderEmail"),
-      otherFarmers: Array.from(allOtherFarmers),
-      marketId: record.get("marketId"),
-    };
-    res.json(marketData);
-  } catch (error) {
-    console.error("Error fetching market profile:", error);
-    res.status(500).send("Error fetching market profile data.");
-  }
-});
+      // אוסף את מוצרי השוק הספציפיים (אלו שמקושרים בקשר WILL_BE לשוק)
+      // וגם את החקלאי שמציע אותם (דרך קשר OFFERS)
+      OPTIONAL MATCH (m)-[will_be:WILL_BE]->(marketItem:Item)<-[offers_item:OFFERS]-(farmerOfferingMarketItem:Person)
+      WITH m, f_founder, participatingFarmers, COLLECT(DISTINCT {
+          name: marketItem.name,
+          description: marketItem.description,
+          price: will_be.marketPrice, // מחיר המוצר כפי שהחקלאי מציע
+          offeringFarmerName: farmerOfferingMarketItem.name,
+          offeringFarmerEmail: farmerOfferingMarketItem.email
+      }) AS marketProducts
 
-router.get("/farmer-markets/:email", async (req, res) => {
-  const { email } = req.params; // 🎯 קבלת המייל מהפרמטרים של ה-URL
-
-  if (!email) {
-    return res.status(400).send("Farmer email is required.");
-  }
-
-  try {
-    const result = await session.run(
-      `MATCH (f:Person {email: $email}) 
-        OPTIONAL MATCH (f)-[r:INVITE]->(m:Market) 
-        WHERE r.participate = true 
-
-      OPTIONAL MATCH (f)-[:FOUNDER]->(m_founder:Market) 
-
-       // אסוף את הפרטים הרלוונטיים משני סוגי השווקים
-        WITH f, COLLECT(DISTINCT {
+      RETURN {
           id: m.id,
+          name: m.name,
           location: m.location,
-          date: m.date
-        }) AS invitedAndParticipatingMarkets,
-        COLLECT(DISTINCT {
-          id: m_founder.id,
-          location: m_founder.location,
-          date: m_founder.date
-        }) AS foundedMarkets
-
-       // שלב את הרשימות וודא שווקים ייחודיים
-       // אנחנו משלבים ולא אכפת לנו מ-participated כאן כי המטרה היא רשימת השווקים שהחקלאי פעיל בהם
-        UNWIND invitedAndParticipatingMarkets + foundedMarkets AS allMarketData
-        RETURN DISTINCT allMarketData.id AS marketId,
-                        allMarketData.location AS location,
-                        allMarketData.date AS date
-        ORDER BY date(allMarketData.date) ASC 
+          date: m.date,
+          hours: m.hours, 
+          latitude: m.latitude,
+          longitude: m.longitude,
+          founderName: f_founder.name,
+          founderEmail: f_founder.email,
+          participatingFarmers: participatingFarmers,
+          marketProducts: marketProducts
+      } AS marketProfile
       `,
-      { email }
+      { location, date } // העברת הפרמטרים לשאילתה
     );
 
     if (result.records.length === 0) {
-      return res.json([]);
+      return res.status(404).send("השוק לא נמצא."); // הודעה בעברית
     }
 
-    const farmerParticipatingMarkets = result.records.map((record) => ({
-      marketId: record.get("marketId"),
-      location: record.get("location"),
-      date: record.get("date"),
-    }));
+    const marketProfile = result.records[0].get("marketProfile");
 
-    res.json(farmerParticipatingMarkets);
+    // טיפול בערך ברירת מחדל לשעות כאן ב-Node.js
+    marketProfile.hours = marketProfile.hours || "09:00 - 16:00";
+
+    // ניקוי רשימות ריקות אם לא נמצאו חקלאים/מוצרים
+    // הלוגיקה הזו עדיין נכונה וחשובה לטיפול במקרה של OPTIONAL MATCH שלא מוצא כלום.
+    if (
+      marketProfile.participatingFarmers.length === 1 &&
+      marketProfile.participatingFarmers[0].name === null // אם COLLECT החזיר אובייקט בודד עם null
+    ) {
+      marketProfile.participatingFarmers = [];
+    } else {
+      // בגלל השינוי שאנחנו כבר לא אוספים מוצרים עבור החקלאים המשתתפים
+      // צריך לוודא שאם יש חקלאי עם שם null הוא לא יוצג.
+      // זה קורה אם ה-OPTIONAL MATCH מצא קשר אבל לא צומת Person תקין.
+      marketProfile.participatingFarmers =
+        marketProfile.participatingFarmers.filter(
+          (farmer) => farmer.name !== null && farmer.email !== null
+        );
+    }
+
+    if (
+      marketProfile.marketProducts.length === 1 &&
+      marketProfile.marketProducts[0].name === null
+    ) {
+      marketProfile.marketProducts = [];
+    }
+
+    res.json(marketProfile);
   } catch (error) {
-    console.error("Error fetching farmer's participating markets:", error);
-    res.status(500).json({
-      message: "Error fetching farmer's participating markets data.",
-      error: error.message,
-    });
+    console.error("שגיאה באחזור פרופיל השוק:", error); // הודעה בעברית
+    res.status(500).send("שגיאת שרת פנימית: " + error.message); // הודעה בעברית
+  } finally {
+    session.close();
   }
 });
 
@@ -387,6 +375,63 @@ router.delete("/declineInvitation", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Server error", error: error.message });
+  }
+});
+
+router.post("/:marketId/add-product", async (req, res) => {
+  const { marketId } = req.params; // מקבלים את marketId מכתובת ה-URL
+  const { farmerEmail, itemName, price } = req.body; // מקבלים את השאר מגוף הבקשה
+
+  if (!marketId || !farmerEmail || !itemName || price == null) {
+    return res
+      .status(400)
+      .send("Market ID, farmer email, item name, and price are required.");
+  }
+
+  try {
+    // שלב 1: מציאת השוק והמוצר
+    // שלב 2: יצירת קשר WILL_BE בין השוק למוצר (אם לא קיים)
+    // שלב 3: לוודא שהחקלאי שמנסה להוסיף את המוצר אכן מציע אותו (OFFERS)
+    const result = await session.run(
+      `
+      MATCH (m:Market {id: $marketId})
+      MATCH (f:Person {email: $farmerEmail})-[offers:OFFERS]->(item:Item {name: $itemName})
+
+      // וודא שהמוצר שייך לחקלאי הזה ומקושר אליו באמצעות OFFERS
+      WHERE item.price IS NOT NULL // לוודא שיש מחיר על המוצר
+      
+      // צור או התאם את הקשר WILL_BE בין השוק למוצר.
+      // נשתמש ב-MERGE כדי למנוע יצירה כפולה של הקשר אם הוא כבר קיים.
+      MERGE (m)-[wb:WILL_BE]->(item)
+      // אם תרצה לשמור מחיר ספציפי לשוק, היית יכול להוסיף לכאן את המאפיין.
+      SET wb.marketPrice = $price // אם תרצה לשמור מחיר שונה מהמחיר המקורי של המוצר
+
+      RETURN m, item, wb
+      `,
+      { marketId, farmerEmail, itemName, price: parseFloat(price) } // לוודא ש-price הוא מספר
+    );
+
+    if (result.records.length === 0) {
+      return res.status(404).json({
+        message:
+          "Could not add product. Market, farmer, or item not found, or item not offered by farmer.",
+      });
+    }
+
+    console.log(
+      `Product '${itemName}' added to market '${marketId}' by '${farmerEmail}' successfully.`
+    );
+    res.status(200).json({
+      message: "Product successfully added/updated in market.",
+      marketId: marketId,
+      itemName: itemName,
+    });
+  } catch (error) {
+    console.error("Error adding product to market:", error);
+    res.status(500).json({
+      message: "Error adding product to market.",
+      details: error.message,
+    });
   }
 });
 
