@@ -101,4 +101,32 @@ router.get("/profile", async (req, res) => {
   }
 });
 
+router.put("/update", async (req, res) => {
+  const { email, name, phone, address } = req.body; // Expects email, name, phone, address
+  if (!email || !name || !phone || !address) {
+    // Checks if all are present
+    return res.status(400).json({ error: "Missing fields in request" });
+  }
+  try {
+    const result = await session.run(
+      `
+      MATCH (u:Person {email: $email})
+      SET u.name = $name, u.phone = $phone, u.address = $address
+      RETURN u
+      `,
+      { email, name, phone, address }
+    );
+
+    if (result.records.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const user = result.records[0].get("u").properties;
+    res.json({ message: "User updated successfully", user });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).send("Server error updating user");
+  }
+});
+
 module.exports = router;
