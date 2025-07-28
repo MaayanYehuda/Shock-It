@@ -1,6 +1,7 @@
 package com.example.shock_it.ui.map.farmerProfile;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -20,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager; // Needed for RecyclerV
 import androidx.recyclerview.widget.RecyclerView; // Needed for RecyclerView
 
 import com.example.shock_it.AddProductDialogFragment;
+import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
 import com.example.shock_it.ProductAdapter; // Import your ProductAdapter
 import com.example.shock_it.dialogs.EditProductDialogFragment;
@@ -59,17 +61,32 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
         return inflater.inflate(R.layout.fragment_farmer_profile, container, false);
     }
 
+// In farmerProfile.java
+
+    // In farmerProfile.java
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // Initialize viewModel once at the beginning
         viewModel = new ViewModelProvider(this).get(FarmerProfileViewModel.class);
 
         SharedPreferences prefs = requireActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         loggedInUserEmail = prefs.getString("user_email", null);
 
-        farmerEmail = loggedInUserEmail;
+        // Correctly get farmerEmail from arguments first
+        if (getArguments() != null) {
+            farmerEmail = getArguments().getString("farmer_email_key");
+            Log.d("FarmerProfile", "Farmer email from arguments: " + farmerEmail);
+        } else {
+            // Fallback: If no arguments are passed, assume it's the current user's profile
+            farmerEmail = loggedInUserEmail;
+            Log.d("FarmerProfile", "No arguments found, defaulting to logged-in user email: " + farmerEmail);
+        }
 
+        // --- REMOVE OR COMMENT OUT THIS LINE ---
+        // farmerEmail = loggedInUserEmail; // <-- THIS IS THE CULPRIT!
 
         // Link views from XML
         nameTextView = view.findViewById(R.id.farmerName);
@@ -77,10 +94,10 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
         addressTextView = view.findViewById(R.id.farmerAddress);
 
         // Initialize RecyclerView for products
-        productsRecyclerView = view.findViewById(R.id.farmerProductsRecyclerView); // Correct ID for RecyclerView
-        productsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // Set a layout manager
-        productAdapter = new ProductAdapter(this); // Initialize adapter, passing 'this' as the listener
-        productsRecyclerView.setAdapter(productAdapter); // Set the adapter to the RecyclerView
+        productsRecyclerView = view.findViewById(R.id.farmerProductsRecyclerView);
+        productsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        productAdapter = new ProductAdapter(this);
+        productsRecyclerView.setAdapter(productAdapter);
 
         marketsLayout = view.findViewById(R.id.farmerMarketsLayout);
         editProfileButton = view.findViewById(R.id.editProfileButton);
@@ -98,7 +115,6 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
                 boolean isProfileOwner = loggedInUserEmail != null && loggedInUserEmail.equals(farmer.getEmail());
 
                 // Update products list using the adapter
-                // Pass the isProfileOwner flag to the adapter so it can show/hide buttons
                 productAdapter.setProducts(farmer.getProducts(), isProfileOwner);
 
                 // Update markets list
@@ -144,12 +160,9 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
         editProfileButton.setOnClickListener(v -> {
             Farmer currentFarmer = viewModel.getFarmer().getValue();
             if (currentFarmer != null) {
-                // Ensure Farmer class has getPhone() if you're passing it
-                // If phone was removed from Farmer class, remove currentFarmer.getPhone() here too
                 EditProfileDialogFragment dialog = EditProfileDialogFragment.newInstance(
                         currentFarmer.getName(), currentFarmer.getPhone(), currentFarmer.getAddress());
                 dialog.setEditProfileDialogListener((newName, newPhone, newAddress) -> {
-                    // This callback is triggered when "Save" is clicked in the dialog
                     if (farmerEmail != null) {
                         viewModel.updateFarmerProfile(farmerEmail, newName, newPhone, newAddress);
                         Toast.makeText(requireContext(), "מעדכן פרטי פרופיל...", Toast.LENGTH_SHORT).show();
@@ -223,6 +236,8 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
 
 
     // Helper method to dynamically update the markets UI (remains LinearLayout)
+    // In farmerProfile.java
+
     private void updateMarketsUI(TreeSet<FarmerMarket> markets) {
         marketsLayout.removeAllViews(); // Clear previous views
 
@@ -232,11 +247,30 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
                 // Accessing Market details through FarmerMarket
                 String marketInfo = "• " + fm.getMarket().getLocation();
                 if (fm.getMarket().getDate() != null) {
+                    // Ensure date formatting is consistent with how MarketProfileActivity expects it
                     marketInfo += " (" + fm.getMarket().getDate().toString() + ")"; // Format date as needed
                 }
                 marketTextView.setText(marketInfo);
                 marketTextView.setTextSize(16);
                 marketTextView.setPadding(0, 4, 0, 4);
+
+                // --- NEW: Make the TextView clickable and add OnClickListener ---
+                marketTextView.setClickable(true);
+                marketTextView.setFocusable(true);
+                // Optional: Add a ripple effect for better user feedback
+                // marketTextView.setBackgroundResource(android.R.drawable.selectable_item_background);
+
+                // Get final variables for use in lambda
+                final String marketLocation = fm.getMarket().getLocation();
+                final String marketDate = fm.getMarket().getDate().toString(); // Ensure this is the correct string format
+
+                marketTextView.setOnClickListener(v -> {
+                    Log.d("FarmerProfile", "Clicked on market: " + marketLocation + ", " + marketDate);
+                    // Call a method to navigate to the MarketProfileActivity
+                    navigateToMarketProfile(marketLocation, marketDate);
+                });
+                // --- END NEW ---
+
                 marketsLayout.addView(marketTextView);
             }
         } else {
@@ -244,8 +278,18 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
             noMarkets.setText("לא צוינו שווקים קשורים");
             noMarkets.setTextSize(16);
             noMarkets.setPadding(0, 4, 0, 4);
-            marketsLayout.addView(noMarkets); // Corrected: Use marketsLayout here
+            noMarkets.setTextColor(getResources().getColor(android.R.color.darker_gray)); // Added for consistency
+            marketsLayout.addView(noMarkets);
         }
+    }
+
+    // --- NEW METHOD: navigateToMarketProfile in farmerProfile.java ---
+    private void navigateToMarketProfile(String location, String date) {
+        Intent intent = new Intent(requireActivity(), MarketProfileActivity.class);
+        intent.putExtra("location", location);
+        intent.putExtra("date", date);
+        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP); // Clears activity stack to prevent endless back press
+        startActivity(intent);
     }
 }
 // Removed the extra closing brace from here at the very end.
