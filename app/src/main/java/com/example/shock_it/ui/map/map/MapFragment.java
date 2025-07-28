@@ -16,12 +16,9 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -29,11 +26,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.shock_it.InvitationsActivity;
 import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
-import com.example.shock_it.databinding.ActivityFarmerInvitesBinding; // ודא שאתה צריך את זה
 import com.example.shock_it.ui.map.MarketAdapter;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.*;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
@@ -88,34 +86,23 @@ public class MapFragment extends Fragment implements
         divider.setDrawable(dividerDrawable);
         recyclerView.addItemDecoration(divider);
 
-        // 🟢 הקריאה ל-loadMarkets() תתבצע רק פעם אחת ב-onResume()
-        // היא לא צריכה להיות פה או ב-onMapReady
-
-        // קישור התצפית ל־ViewModel - זה ישאר כפי שהוא, וזה מה שיעדכן את ה-UI
+        // 🟢 Observe the markets LiveData. This will update both the RecyclerView and the Map.
         mapViewModel.getMarkets().observe(getViewLifecycleOwner(), markets -> {
-            Log.d("MapFragment", "ViewModel markets updated. Updating UI.");
-            marketAdapter.setMarketList(markets); // עדכן את רשימת השווקים באדפטר
-            if (mGoogleMap != null) {
-                mGoogleMap.clear(); // נקה סמנים קודמים
-                markerMarketMap.clear(); // נקה גם את מפת הקישור
+            Log.d("MapFragment", "ViewModel markets updated. Updating UI components.");
 
-                for (Market market : markets) {
-                    LatLng latLng = new LatLng(market.getLatitude(), market.getLongitude());
-                    Marker marker = mGoogleMap.addMarker(new MarkerOptions()
-                            .position(latLng)
-                            .title(market.getLocation())
-                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.market)));
-                    if (marker != null) {
-                        markerMarketMap.put(marker, market); // קשר את המרקר לאובייקט ה-Market
-                    }
-                }
-                // אופציונלי: התקרב למיקום השוק הראשון אם יש, רק אחרי שהשווקים מוספו למפה
-                if (!markets.isEmpty()) {
-                    Market firstMarket = markets.get(0);
-                    LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
-                    mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 12)); // זום קצת פחות צפוף
-                }
-            }
+            // --- CHANGE HERE: Post the RecyclerView update to ensure layout is ready ---
+            // This ensures the RecyclerView has finished its initial layout pass
+            // before trying to populate it with data, which might be critical
+            // for the first display within a BottomSheet.
+            recyclerView.post(() -> {
+                marketAdapter.setMarketList(markets); // Update the RecyclerView
+                marketAdapter.notifyDataSetChanged(); // Explicitly notify for full redraw
+                Log.d("MapFragment", "RecyclerView adapter updated and notified.");
+            });
+            // ----------------------------------------------------------------------
+
+            // This helper method will handle map updates, checking if mGoogleMap is ready
+            updateMapMarkers(markets); // Call the helper here!
         });
 
         // איתור ה-SupportMapFragment בתוך ה-Fragment עצמו
@@ -137,7 +124,14 @@ public class MapFragment extends Fragment implements
                 }
 
                 checkLocationPermission();
-                // 🔴 הסר את הקריאה ל-loadMarkets() מכאן! היא תופעל ב-onResume.
+
+                // 🌟 IMPORTANT: When the map is finally ready, update it with the current data from the ViewModel.
+                // This handles the case where data was fetched *before* the map was initialized.
+                List<Market> currentMarkets = mapViewModel.getMarkets().getValue();
+                if (currentMarkets != null && !currentMarkets.isEmpty()) {
+                    Log.d("MapFragment", "Map ready, updating with existing ViewModel data.");
+                    updateMapMarkers(currentMarkets); // Call the helper here too!
+                }
             });
         }
 
@@ -149,7 +143,7 @@ public class MapFragment extends Fragment implements
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         // כפתור הזמנות
-        FloatingActionButton invitesButton = rootView.findViewById(R.id.messages); // Assuming R.id.messages is your invites button
+        FloatingActionButton invitesButton = rootView.findViewById(R.id.messages);
         if (invitesButton != null) {
             invitesButton.setOnClickListener(v -> {
                 Log.d("MapFragment", "Navigating to Invitations Activity...");
@@ -170,6 +164,35 @@ public class MapFragment extends Fragment implements
         loadMarkets();
     }
 
+    // --- New helper method to update map markers (ADD THIS METHOD) ---
+    private void updateMapMarkers(List<Market> markets) {
+        if (mGoogleMap != null && markets != null) {
+            Log.d("MapFragment", "Updating map markers. Number of markets: " + markets.size());
+            mGoogleMap.clear(); // Clear previous markers
+            markerMarketMap.clear(); // Clear the marker-market map
+
+            for (Market market : markets) {
+                LatLng latLng = new LatLng(market.getLatitude(), market.getLongitude());
+                Marker marker = mGoogleMap.addMarker(new MarkerOptions()
+                        .position(latLng)
+                        .title(market.getLocation())
+                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.market)));
+                if (marker != null) {
+                    markerMarketMap.put(marker, market); // Link the marker to the Market object
+                }
+            }
+            // Optional: Animate camera to the first market if available
+            if (!markets.isEmpty()) {
+                Market firstMarket = markets.get(0);
+                LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 12));
+            }
+        } else {
+            Log.d("MapFragment", "Cannot update map markers. mGoogleMap is null: " + (mGoogleMap == null) + ", markets list is null: " + (markets == null));
+        }
+    }
+    // -----------------------------------------------
+
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -187,7 +210,7 @@ public class MapFragment extends Fragment implements
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 enableMyLocation();
             } else {
-                Toast.makeText(requireContext(), "הרשאת מיקום נדחתה. לא ניתן להציג את מיקומך.", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Location permission denied. Cannot display your location.", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -219,6 +242,16 @@ public class MapFragment extends Fragment implements
         new Thread(() -> {
             try {
                 String response = Service.getMarkets();
+                Log.d("MapFragment", "Service.getMarkets() response: " + response); // ADDED LOG
+                if (response == null || response.isEmpty() || response.equals("[]")) { // ADDED CHECK
+                    Log.w("MapFragment", "Service.getMarkets() returned empty or null response.");
+                    requireActivity().runOnUiThread(() -> {
+                        Toast.makeText(requireContext(), "No markets found or service error.", Toast.LENGTH_SHORT).show();
+                        mapViewModel.setMarkets(new ArrayList<>()); // Clear previous data if any
+                    });
+                    return; // Exit if no data
+                }
+
                 JSONArray jsonArray = new JSONArray(response);
                 List<Market> markets = new ArrayList<>();
                 for (int i = 0; i < jsonArray.length(); i++) {
@@ -235,30 +268,12 @@ public class MapFragment extends Fragment implements
                     markets.add(new Market(date, location, lat, lng));
                 }
 
+                Log.d("MapFragment", "Parsed markets list size: " + markets.size()); // ADDED LOG
+
                 requireActivity().runOnUiThread(() -> {
-                    // 🟢 תמיד עדכן את ה-ViewModel. ה-Observer שלו הוא זה שיעדכן את ה-UI.
-                    if(mapViewModel != null) {
-                        mapViewModel.setMarkets(markets);
-                        Log.d("MapFragment", "Markets set to ViewModel. Observer should update UI.");
-                    } else {
-                        // זהו מקרה גיבוי שלא אמור לקרות אם ה-ViewModel מאותחל נכון
-                        Log.w("MapFragment", "ViewModel is null, updating UI directly (fallback).");
-                        marketAdapter.setMarketList(markets);
-                        if (mGoogleMap != null) {
-                            mGoogleMap.clear();
-                            markerMarketMap.clear();
-                            for (Market market : markets) {
-                                LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
-                                Marker marker = mGoogleMap.addMarker(new MarkerOptions()
-                                        .position(pos)
-                                        .title(market.getLocation())
-                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.market)));
-                                if (marker != null) {
-                                    markerMarketMap.put(marker, market);
-                                }
-                            }
-                        }
-                    }
+                    // Always update the ViewModel. Its Observer will handle UI updates.
+                    mapViewModel.setMarkets(markets);
+                    Log.d("MapFragment", "Markets set to ViewModel. Observer should update UI.");
                 });
             } catch (Exception e) {
                 Log.e("MapFragment", "Error loading markets: " + e.getMessage(), e);

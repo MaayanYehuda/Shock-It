@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="8dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/rounded_corners_background"
+    android:gravity="center_vertical"
+    android:layoutDirection="rtl">
+
+    <TextView
+        android:id="@+id/productItemNamePrice"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="• שם מוצר - 0.00 ₪"
+        android:textSize="16sp"
+        android:textColor="#444444"
+        android:paddingEnd="8dp" />
+
+    <ImageButton
+        android:id="@+id/editProductButton"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@drawable/ic_edit"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="ערוך מוצר"
+        android:scaleType="fitCenter"
+        android:padding="6dp"
+        android:layout_marginStart="8dp" />
+
+    <ImageButton
+        android:id="@+id/deleteProductButton"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:src="@drawable/ic_trash"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="מחק מוצר"
+        android:scaleType="fitCenter"
+        android:padding="6dp"
+        android:layout_marginStart="8dp" />
+
+</LinearLayout>

@@ -13,6 +13,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList; // Used for new Farmer instance
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
@@ -29,6 +30,7 @@ public class FarmerProfileViewModel extends ViewModel {
     public LiveData<Farmer> getFarmer() {
         return _farmer;
     }
+
     public void loadFarmerProfile(String email) {
         if (email == null || email.isEmpty()) {
             Log.e("FarmerProfileVM", "Email is null or empty, cannot load profile.");
@@ -58,7 +60,7 @@ public class FarmerProfileViewModel extends ViewModel {
                     String itemName = itemJson.optString("name", "מוצר ללא שם");
                     String itemDesc = itemJson.optString("description", "");
                     double price = itemJson.optDouble("price", 0.0);
-                    Item newItem = new Item(itemName, itemDesc);
+                    Item newItem = new Item(itemName, itemDesc); // Item class should also store description if needed
                     currentFarmer.addProduct(newItem, price); // Add product to Farmer object
                 }
 
@@ -68,15 +70,13 @@ public class FarmerProfileViewModel extends ViewModel {
                 for (int i = 0; i < marketsArray.length(); i++) {
                     JSONObject marketObj = marketsArray.getJSONObject(i);
 
-                    // 🎯 IMPORTANT: Check for nulls before using optString
-                    String marketId = marketObj.optString("marketId", null); // Use null as default to detect actual nulls
+                    String marketId = marketObj.optString("marketId", null);
                     String location = marketObj.optString("location", null);
-                    String dateStr = marketObj.optString("date", null); // Will be "null" if server sends null
+                    String dateStr = marketObj.optString("date", null);
 
-                    // If any of these core fields are null, skip this market entry
                     if (marketId == null || location == null || dateStr == null || "null".equalsIgnoreCase(dateStr)) {
                         Log.w("FarmerProfileVM", "Skipping market entry due to null or invalid data: " + marketObj.toString());
-                        continue; // Skip to the next market in the loop
+                        continue;
                     }
 
                     LocalDate date = null;
@@ -85,18 +85,16 @@ public class FarmerProfileViewModel extends ViewModel {
                             date = LocalDate.parse(dateStr);
                         } catch (java.time.format.DateTimeParseException e) {
                             Log.e("FarmerProfileVM", "Error parsing date '" + dateStr + "': " + e.getMessage());
-                            continue; // Skip this market if date parsing fails
+                            continue;
                         }
                     }
 
-                    // Only create Market and FarmerMarket if all essential data is valid
                     Market market = new Market(date, location, 0.0, 0.0);
                     FarmerMarket farmerMarket = new FarmerMarket(market);
                     farmerMarket.setParticipated(true);
                     currentFarmer.addFarmerMarket(farmerMarket);
                 }
 
-                // Update the LiveData with the fully populated Farmer object
                 _farmer.postValue(currentFarmer);
 
             } catch (IOException | JSONException e) {
@@ -111,9 +109,84 @@ public class FarmerProfileViewModel extends ViewModel {
         new Thread(() -> {
             try {
                 Service.addNewItem(email, item.getName(), price, item.getDescription());
-                loadFarmerProfile(email);
+                loadFarmerProfile(email); // Reload to reflect changes
             } catch (Exception e) {
                 Log.e("FarmerProfileVM", "Error adding product: " + e.getMessage(), e);
+            }
+        }).start();
+    }
+
+    // 🆕 NEW: Method to update farmer's profile details
+    public void updateFarmerProfile(String email, String name, String phone, String address) {
+        new Thread(() -> {
+            try {
+                String response = Service.editProfile(email, name, phone, address);
+                // Optionally parse response for success/error message
+                JSONObject jsonResponse = new JSONObject(response);
+                if (jsonResponse.has("message")) {
+                    Log.d("FarmerProfileVM", "Profile update successful: " + jsonResponse.getString("message"));
+                }
+                loadFarmerProfile(email); // Reload profile to reflect changes
+            } catch (IOException | JSONException e) {
+                Log.e("FarmerProfileVM", "Error updating farmer profile: " + e.getMessage(), e);
+                // Handle error (e.g., show a toast through a different LiveData)
+            }
+        }).start();
+    }
+
+    // 🆕 NEW: Method to edit an existing product
+    public void editProduct(String farmerEmail, String originalItemName, String newItemName, String newDescription, double newPrice) {
+        new Thread(() -> {
+            try {
+                String response = Service.editItem(farmerEmail, originalItemName, newItemName, newPrice, newDescription);
+                JSONObject jsonResponse = new JSONObject(response);
+                if (jsonResponse.has("message")) {
+                    Log.d("FarmerProfileVM", "Product edit successful: " + jsonResponse.getString("message"));
+                }
+                loadFarmerProfile(farmerEmail); // Reload profile to reflect changes
+            } catch (IOException | JSONException e) {
+                Log.e("FarmerProfileVM", "Error editing product: " + e.getMessage(), e);
+            }
+        }).start();
+    }
+
+    // 🆕 NEW: Method to delete a product
+// Inside FarmerProfileViewModel.java
+
+    // Method to delete a product
+    public void deleteProduct(String farmerEmail, String itemName) {
+        if (farmerEmail == null || farmerEmail.isEmpty() || itemName == null || itemName.isEmpty()) {
+            Log.e("FarmerProfileVM", "Cannot delete product: farmerEmail or itemName is null/empty.");
+            return;
+        }
+
+        new Thread(() -> {
+            String response = null;
+            try {
+                Log.d("FarmerProfileVM", "Attempting to delete product: " + itemName + " for farmer: " + farmerEmail);
+                response = Service.deleteItem(farmerEmail, itemName);
+                Log.d("FarmerProfileVM", "Server response for deleteItem: " + response);
+
+                JSONObject jsonResponse = new JSONObject(response);
+                if (jsonResponse.has("message")) {
+                    Log.d("FarmerProfileVM", "Product delete successful: " + jsonResponse.getString("message"));
+                    // Reload profile only after successful deletion
+                    loadFarmerProfile(farmerEmail);
+                } else if (jsonResponse.has("error")) {
+                    Log.e("FarmerProfileVM", "Product delete failed with server error: " + jsonResponse.getString("error"));
+                    // Optionally show a toast or alert to the user here
+                } else {
+                    Log.w("FarmerProfileVM", "Product delete response unknown format: " + response);
+                }
+            } catch (IOException e) {
+                // This catches network errors, timeout, server unreachable, etc.
+                Log.e("FarmerProfileVM", "Network error deleting product: " + e.getMessage(), e);
+            } catch (JSONException e) {
+                // This catches errors if the server response is not valid JSON
+                Log.e("FarmerProfileVM", "JSON parsing error deleting product: " + e.getMessage() + ", Response: " + response, e);
+            } catch (Exception e) {
+                // Catch any other unexpected exceptions
+                Log.e("FarmerProfileVM", "Unexpected error deleting product: " + e.getMessage(), e);
             }
         }).start();
     }

@@ -20,7 +20,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.0.109:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -286,5 +286,38 @@ public class Service {
         jsonBody.put("price", price);
         return post(path, jsonBody.toString());
     }
+
+    public static String editProfile(String email, String name, String phone, String address) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("email", email);
+        jsonParam.put("name", name);
+        jsonParam.put("phone", phone);
+        jsonParam.put("address", address);
+        String response = put("users/update", jsonParam.toString());
+        Log.d("Service", "editProfile server response: " + response);
+        return response;
+    }
+    public static String editItem(String farmerEmail, String originalItemName, String newItemName, double newPrice, String newDescription) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("farmerEmail", farmerEmail);
+        jsonParam.put("originalItemName", originalItemName);
+        jsonParam.put("newItemName", newItemName);
+        jsonParam.put("newPrice", newPrice);
+        jsonParam.put("newDescription", newDescription);
+        String response = put("items/update", jsonParam.toString()); // Assuming a PUT /items/update route
+        Log.d("Service", "editItem server response: " + response);
+        return response;
+    }
+
+    public static String deleteItem(String farmerEmail, String itemName) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("farmerEmail", farmerEmail);
+        jsonParam.put("itemName", itemName);
+        Log.d("Service", "Sending delete request for farmer: " + farmerEmail + ", item: " + itemName + " with payload: " + jsonParam.toString());
+        String response = delete("items/", jsonParam.toString()); // Assuming a DELETE /items/delete route
+        Log.d("Service", "deleteItem server response: " + response);
+        return response;
+    }
+
 
 }
