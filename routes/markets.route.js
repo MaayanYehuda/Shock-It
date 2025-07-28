@@ -435,4 +435,67 @@ router.post("/:marketId/add-product", async (req, res) => {
   }
 });
 
+router.get("/farmer-markets/:email", async (req, res) => {
+  const { email } = req.params; // קבלת המייל מהפרמטרים של ה-URL
+
+  if (!email) {
+    return res.status(400).send("Farmer email is required.");
+  }
+
+  const session = driver.session(); // יצירת סשן לכל בקשה
+  try {
+    const result = await session.run(
+      `
+      MATCH (f:Person {email: $email})
+      OPTIONAL MATCH (f)-[:FOUNDER]->(m_founded:Market)
+
+      OPTIONAL MATCH (f)<-[r:INVITE]-(m_invited:Market)
+      WHERE r.participate = true
+
+      WITH f, COLLECT(DISTINCT {
+          id: m_founded.id,
+          location: m_founded.location,
+          date: m_founded.date
+      }) AS foundedMarkets,
+      COLLECT(DISTINCT {
+          id: m_invited.id,
+          location: m_invited.location,
+          date: m_invited.date
+      }) AS invitedMarkets
+
+      // איחוד וסינון כפילויות
+      UNWIND foundedMarkets + invitedMarkets AS allMarketData
+      WITH DISTINCT allMarketData
+      WHERE allMarketData.id IS NOT NULL // ודא שאין רשומות ריקות מ-OPTIONAL MATCH
+      RETURN allMarketData.id AS marketId,
+             allMarketData.location AS location,
+             allMarketData.date AS date
+      ORDER BY date(allMarketData.date) ASC
+      `,
+      { email }
+    );
+
+    if (result.records.length === 0) {
+      // אם לא נמצאו שווקים כלל, החזר מערך ריק במקום 404
+      return res.json([]);
+    }
+
+    const farmerParticipatingMarkets = result.records.map((record) => ({
+      marketId: record.get("marketId"),
+      location: record.get("location"),
+      date: record.get("date"),
+    }));
+
+    res.json(farmerParticipatingMarkets);
+  } catch (error) {
+    console.error("Error fetching farmer's participating markets:", error);
+    res.status(500).json({
+      message: "Error fetching farmer's participating markets data.",
+      error: error.message,
+    });
+  } finally {
+    session.close(); // סגור את הסשן בסיום
+  }
+});
+
 module.exports = router;
