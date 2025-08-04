@@ -12,8 +12,6 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.util.Log;
@@ -25,9 +23,9 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.shock_it.R;
+import com.example.shock_it.MarketProfileActivity;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import android.content.Intent; // וודא ייבוא של Intent
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -49,9 +47,16 @@ public class AddMarketFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+                                      @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_market, container, false);
 
+        // קודם אתחול ה־ViewModel
+        viewModel = new ViewModelProvider(this).get(AddMarketViewModel.class);
+
+        // רק עכשיו מותר לקרוא ל־resetMarketAddedSuccessfully
+        viewModel.resetMarketAddedSuccessfully(); // ✅ מעכשיו כבר לא יזרוק NPE
+
+        // אתחול רכיבי ה־UI
         dateInput = view.findViewById(R.id.editTextDate);
         locationInput = view.findViewById(R.id.editTextLocation);
         addMarketButton = view.findViewById(R.id.buttonAddMarket);
@@ -73,15 +78,23 @@ public class AddMarketFragment extends Fragment {
 
         viewModel.getMarketAddedSuccessfully().observe(getViewLifecycleOwner(), success -> {
             if (success != null && success) {
-                clearInputs();
-                String marketId = viewModel.getNewMarketId(); // קבל את ה-ID מה-ViewModel
+                String marketId = viewModel.getNewMarketId();
+
+                String originalLocation = locationInput.getText().toString().trim();
+                String originalDate = dateInput.getText().toString().trim();
+                String formattedDateForIntent = convertToISODate(originalDate);
+
                 if (marketId != null) {
-                    Log.d("AddMarketFragment", "Market added successfully, navigating to ManageMarketFragment with ID: " + marketId);
-                    manualNavigateToManageMarket(marketId); // קרא לפונקציית הניווט
+                    Log.d("AddMarketFragment", "Market added successfully, navigating to MarketProfileActivity with ID: " + marketId);
+                    navigateToMarketProfile(marketId, originalLocation, formattedDateForIntent);
+                    clearInputs();
                 } else {
                     Log.w("AddMarketFragment", "Market added successfully, but no ID received for navigation.");
-                    Toast.makeText(requireContext(), "השוק נוסף בהצלחה, אך לא ניתן לנווט לניהול. ID חסר.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(requireContext(), "השוק נוסף בהצלחה, אך לא ניתן לנווט לפרופיל השוק. ID חסר.", Toast.LENGTH_LONG).show();
                 }
+                // --- CALL THE NEW RESET METHOD FROM THE VIEWMODEL ---
+                viewModel.resetMarketAddedSuccessfully(); // Call the public method in your ViewModel
+                // ----------------------------------------------------
             }
         });
 
@@ -179,27 +192,28 @@ public class AddMarketFragment extends Fragment {
         }
     }
 
-    // בתוך AddMarketFragment.java, בסוף הקובץ, מחוץ לכל המתודות הקיימות
+    // In AddMarketFragment.java
 
-    private void manualNavigateToManageMarket(String marketId) {
-        Bundle args = new Bundle();
-        args.putString("marketId", marketId);
+    private void navigateToMarketProfile(String marketId, String location, String formattedDateForIntent) {
+        // אין צורך לקרוא מ-locationInput ו-dateInput כאן!
+        // הם כבר מגיעים כפרמטרים.
 
-        com.example.shock_it.manageMarket.ManageMarketFragment manageMarketFragment = new com.example.shock_it.manageMarket.ManageMarketFragment();
-        manageMarketFragment.setArguments(args); // העבר את ה-arguments
+        // יצירת Intent כדי להפעיל את MarketProfileActivity
+        Intent intent = new Intent(requireActivity(), MarketProfileActivity.class);
 
-        FragmentManager fragmentManager = requireActivity().getSupportFragmentManager();
-        FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+        // העברת ה-marketId, location, ו-date כפרמטרים לאקטיביטי
+        intent.putExtra("marketId", marketId);
+        intent.putExtra("location", location); // Pass the original location name
+        intent.putExtra("date", formattedDateForIntent); // Pass the formatted date (yyyy-MM-dd)
+        // הפעלת האקטיביטי
+        startActivity(intent);
+        Log.d("Market Details:", marketId.trim() +" "+ location.trim() +" "+formattedDateForIntent.trim());
 
-        fragmentTransaction.replace(R.id.nav_host_fragment_content_farmer_home, manageMarketFragment);
-
-        fragmentTransaction.addToBackStack(null);
-
-        fragmentTransaction.commit();
-
-        Toast.makeText(requireContext(), "נווט למסך ניהול שוק " + marketId, Toast.LENGTH_SHORT).show(); // 🆕 הודעה לאחר ניווט
+        Toast.makeText(requireContext(), "נווט לפרופיל שוק " + marketId, Toast.LENGTH_SHORT).show();
     }
 
+    // Make sure convertToISODate is accessible and correctly formats to "yyyy-MM-dd"
+// Your existing convertToISODate function looks correct for this purpose.
     private void clearInputs() {
         dateInput.setText("");
         locationInput.setText("");

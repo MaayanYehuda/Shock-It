@@ -20,7 +20,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.0.109:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.0.107:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -222,7 +222,6 @@ public class Service {
         }
     }
 
-    // 🆕 הוספה: inviteFarmerToMarket
     public static String inviteFarmerToMarket(String marketId, String invitedEmail, String inviterEmail) throws IOException, JSONException {
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("marketId", marketId);
@@ -318,6 +317,23 @@ public class Service {
         Log.d("Service", "deleteItem server response: " + response);
         return response;
     }
+
+    public static String sendJoinRequestToMarket(String marketId, String email, JSONArray products) throws IOException, JSONException {
+        try {
+            JSONObject jsonParam = new JSONObject();
+            jsonParam.put("email", email); // או farmerEmail אם זה מה שנדרש
+            jsonParam.put("products", products); // JSONArray של אובייקטים עם name ו-price
+            String path = "markets/" + marketId + "/request";
+            Log.d("SendRequest", "Sending: " + jsonParam.toString());
+            String response = post(path, jsonParam.toString());
+            Log.d("SendRequest", "Response: " + response);
+            return response;
+        } catch (JSONException | IOException e) {
+            Log.e("SendRequest", "Error: " + e.getMessage());
+            return null;
+        }
+    }
+
 
 
 }

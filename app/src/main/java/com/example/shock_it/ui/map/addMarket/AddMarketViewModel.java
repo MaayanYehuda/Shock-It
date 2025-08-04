@@ -75,6 +75,9 @@ public class AddMarketViewModel extends ViewModel {
             isLoading.postValue(false);
         }).start();
     }
+    public void resetMarketAddedSuccessfully() {
+        marketAddedSuccessfully.setValue(null);
+    }
     interface AddMarketCallback {
         void onSuccess(String marketId, String message);
         void onFailure(String errorMessage);
