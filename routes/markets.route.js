@@ -5,7 +5,9 @@ const { v4: uuidv4 } = require("uuid"); // 🆕 הוספה: ייבוא ספרי�
 
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  neo4j.auth.basic("neo4j", "loolrov17")
+  // neo4j.auth.basic("neo4j", "loolrov17")
+    neo4j.auth.basic("neo4j", "315833301")
+  
 );
 
 const session = driver.session();
@@ -100,36 +102,45 @@ router.get("/profile", async (req, res) => {
   const { location, date } = req.query;
 
   if (!location || !date) {
-    return res.status(400).send("מיקום ותאריך נדרשים."); // הודעה בעברית
+    return res.status(400).send("מיקום ותאריך נדרשים.");
   }
 
   const session = driver.session();
   try {
     const result = await session.run(
       `
-      MATCH (m:Market {location: $location, date: $date}) // חשוב: שימוש בפרמטרים
+      MATCH (m:Market {location: $location, date: $date})
       OPTIONAL MATCH (f_founder:Person)-[:FOUNDER]->(m)
 
       // אוסף את פרטי החקלאים המשתתפים (אלו שהוזמנו והשתתפותם אושרה)
-      // כיוון הקשר: Person <-INVITE- Market (השוק מזמין את האדם)
       OPTIONAL MATCH (p_participant:Person)<-[invited:INVITE]-(m)
-      WHERE invited.participate = true // ודא שמאפיין זה קיים על קשר INVITE
-
-      // כאן אנו אוספים רק את פרטי החקלאים המשתתפים.
-      // המוצרים שלהם שישתתפו בשוק יופיעו תחת 'marketProducts'.
+      WHERE invited.participate = true
       WITH m, f_founder, COLLECT(DISTINCT {
           name: p_participant.name,
           email: p_participant.email
-          // שימו לב: אין כאן 'products'. המוצרים יטופלו בנפרד למטה.
       }) AS participatingFarmers
 
-      // אוסף את מוצרי השוק הספציפיים (אלו שמקושרים בקשר WILL_BE לשוק)
-      // וגם את החקלאי שמציע אותם (דרך קשר OFFERS)
-      OPTIONAL MATCH (m)-[will_be:WILL_BE]->(marketItem:Item)<-[offers_item:OFFERS]-(farmerOfferingMarketItem:Person)
+      // אוסף את פרטי החקלאים שהוזמנו אך טרם אישרו
+      OPTIONAL MATCH (p_invited:Person)<-[invited:INVITE]-(m)
+      WHERE invited.participate = false
       WITH m, f_founder, participatingFarmers, COLLECT(DISTINCT {
+          name: p_invited.name,
+          email: p_invited.email
+      }) AS invitedFarmers
+
+      // אוסף את פרטי החקלאים עם בקשות הצטרפות ממתינות
+      OPTIONAL MATCH (p_pending:Person)-[:REQUEST]->(m)
+      WITH m, f_founder, participatingFarmers, invitedFarmers, COLLECT(DISTINCT {
+          name: p_pending.name,
+          email: p_pending.email
+      }) AS pendingRequests
+
+      // אוסף את מוצרי השוק הספציפיים (הלוגיקה הזו נשארת ללא שינוי)
+      OPTIONAL MATCH (m)-[will_be:WILL_BE]->(marketItem:Item)<-[offers_item:OFFERS]-(farmerOfferingMarketItem:Person)
+      WITH m, f_founder, participatingFarmers, invitedFarmers, pendingRequests, COLLECT(DISTINCT {
           name: marketItem.name,
           description: marketItem.description,
-          price: will_be.marketPrice, // מחיר המוצר כפי שהחקלאי מציע
+          price: will_be.marketPrice,
           offeringFarmerName: farmerOfferingMarketItem.name,
           offeringFarmerEmail: farmerOfferingMarketItem.email
       }) AS marketProducts
@@ -139,44 +150,36 @@ router.get("/profile", async (req, res) => {
           name: m.name,
           location: m.location,
           date: m.date,
-          hours: m.hours, 
+          hours: m.hours,
           latitude: m.latitude,
           longitude: m.longitude,
           founderName: f_founder.name,
           founderEmail: f_founder.email,
           participatingFarmers: participatingFarmers,
+          invitedFarmers: invitedFarmers,
+          pendingRequests: pendingRequests,
           marketProducts: marketProducts
       } AS marketProfile
       `,
-      { location, date } // העברת הפרמטרים לשאילתה
+      { location, date }
     );
 
     if (result.records.length === 0) {
-      return res.status(404).send("השוק לא נמצא."); // הודעה בעברית
+      return res.status(404).send("השוק לא נמצא.");
     }
 
     const marketProfile = result.records[0].get("marketProfile");
-
-    // טיפול בערך ברירת מחדל לשעות כאן ב-Node.js
     marketProfile.hours = marketProfile.hours || "09:00 - 16:00";
 
-    // ניקוי רשימות ריקות אם לא נמצאו חקלאים/מוצרים
-    // הלוגיקה הזו עדיין נכונה וחשובה לטיפול במקרה של OPTIONAL MATCH שלא מוצא כלום.
-    if (
-      marketProfile.participatingFarmers.length === 1 &&
-      marketProfile.participatingFarmers[0].name === null // אם COLLECT החזיר אובייקט בודד עם null
-    ) {
-      marketProfile.participatingFarmers = [];
-    } else {
-      // בגלל השינוי שאנחנו כבר לא אוספים מוצרים עבור החקלאים המשתתפים
-      // צריך לוודא שאם יש חקלאי עם שם null הוא לא יוצג.
-      // זה קורה אם ה-OPTIONAL MATCH מצא קשר אבל לא צומת Person תקין.
-      marketProfile.participatingFarmers =
-        marketProfile.participatingFarmers.filter(
-          (farmer) => farmer.name !== null && farmer.email !== null
-        );
-    }
+    // ניקוי מערכים ריקים שהתקבלו מ-COLLECT על OPTIONAL MATCH
+    const cleanArray = (arr) =>
+      (arr.length === 1 && arr[0].name === null) ? [] : arr.filter(item => item.name !== null && item.email !== null);
 
+    marketProfile.participatingFarmers = cleanArray(marketProfile.participatingFarmers);
+    marketProfile.invitedFarmers = cleanArray(marketProfile.invitedFarmers);
+    marketProfile.pendingRequests = cleanArray(marketProfile.pendingRequests);
+
+    // ניקוי המערך marketProducts
     if (
       marketProfile.marketProducts.length === 1 &&
       marketProfile.marketProducts[0].name === null
@@ -186,8 +189,8 @@ router.get("/profile", async (req, res) => {
 
     res.json(marketProfile);
   } catch (error) {
-    console.error("שגיאה באחזור פרופיל השוק:", error); // הודעה בעברית
-    res.status(500).send("שגיאת שרת פנימית: " + error.message); // הודעה בעברית
+    console.error("שגיאה באחזור פרופיל השוק:", error);
+    res.status(500).send("שגיאת שרת פנימית: " + error.message);
   } finally {
     session.close();
   }
@@ -497,5 +500,94 @@ router.get("/farmer-markets/:email", async (req, res) => {
     session.close(); // סגור את הסשן בסיום
   }
 });
+
+
+router.post("/:marketId/request", async (req, res) => {
+  const { marketId, farmerEmail, products } = req.body;
+
+  if (!marketId || !farmerEmail || !Array.isArray(products)) {
+    return res.status(400).send("מזהה שוק, מייל חקלאי ורשימת מוצרים נדרשים.");
+  }
+
+  const session = driver.session();
+  try {
+    // Check if the market and the farmer exist
+    const checkResult = await session.run(
+      `
+      MATCH (m:Market {id: $marketId})
+      MATCH (f:Person {email: $farmerEmail})
+      RETURN m, f
+      `,
+      { marketId, farmerEmail }
+    );
+
+    if (checkResult.records.length === 0) {
+      return res.status(404).send("השוק או החקלאי לא נמצאו.");
+    }
+
+    // Check if a request already exists
+    const existingRequest = await session.run(
+        `
+        MATCH (f:Person {email: $farmerEmail})<-[:REQUEST]-(m:Market {id: $marketId})
+        RETURN count(m) AS count
+        `,
+        { marketId, farmerEmail }
+    );
+
+    if (existingRequest.records[0].get('count').toInt() > 0) {
+        return res.status(409).send("בקשת הצטרפות כבר קיימת עבור שוק זה.");
+    }
+
+    // Begin a transaction to handle multiple writes
+    const tx = session.beginTransaction();
+
+    try {
+      // 1. Create a REQUEST relationship between the farmer and the market
+      await tx.run(
+        `
+        MATCH (f:Person {email: $farmerEmail})
+        MATCH (m:Market {id: $marketId})
+        MERGE (f)<-[:REQUEST]-(m)
+        `,
+        { farmerEmail, marketId }
+      );
+
+      // 2. For each product, create a WILL_BE relationship to the market
+      for (const product of products) {
+        const productId = crypto.randomUUID();
+        await tx.run(
+          `
+          MATCH (m:Market {id: $marketId})
+          MATCH (f:Person {email: $farmerEmail})
+          MERGE (f)-[:OFFERS]->(i:Item {id: $productId, name: $productName, description: 'product description', ownerEmail: $farmerEmail})
+          MERGE (m)-[:WILL_BE {marketPrice: $price}]->(i)
+          `,
+          {
+            marketId,
+            farmerEmail,
+            productId,
+            productName: product.name,
+            price: product.price,
+          }
+        );
+      }
+      
+      await tx.commit();
+      res.status(200).send("הבקשה נשלחה בהצלחה.");
+    } catch (txError) {
+      console.error("Transaction failed, rolling back:", txError);
+      await tx.rollback();
+      res.status(500).send("שגיאה בשליחת הבקשה: " + txError.message);
+    }
+  } catch (error) {
+    console.error("שגיאה בשליחת בקשת הצטרפות:", error);
+    res.status(500).send("שגיאת שרת פנימית: " + error.message);
+  } finally {
+    session.close();
+  }
+});
+
+module.exports = router;
+
 
 module.exports = router;

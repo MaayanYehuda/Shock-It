@@ -4,8 +4,8 @@ const neo4j = require("neo4j-driver");
 // התחברות ל-NEO4J
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  neo4j.auth.basic("neo4j", "loolrov17")
-  // neo4j.auth.basic("neo4j", "315833301")
+  // neo4j.auth.basic("neo4j", "loolrov17")
+  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
