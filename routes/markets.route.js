@@ -5,9 +5,8 @@ const { v4: uuidv4 } = require("uuid"); // 🆕 הוספה: ייבוא ספרי�
 
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  // neo4j.auth.basic("neo4j", "loolrov17")
-    neo4j.auth.basic("neo4j", "315833301")
-  
+  neo4j.auth.basic("neo4j", "loolrov17")
+  // neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
@@ -173,9 +172,13 @@ router.get("/profile", async (req, res) => {
 
     // ניקוי מערכים ריקים שהתקבלו מ-COLLECT על OPTIONAL MATCH
     const cleanArray = (arr) =>
-      (arr.length === 1 && arr[0].name === null) ? [] : arr.filter(item => item.name !== null && item.email !== null);
+      arr.length === 1 && arr[0].name === null
+        ? []
+        : arr.filter((item) => item.name !== null && item.email !== null);
 
-    marketProfile.participatingFarmers = cleanArray(marketProfile.participatingFarmers);
+    marketProfile.participatingFarmers = cleanArray(
+      marketProfile.participatingFarmers
+    );
     marketProfile.invitedFarmers = cleanArray(marketProfile.invitedFarmers);
     marketProfile.pendingRequests = cleanArray(marketProfile.pendingRequests);
 
@@ -501,16 +504,33 @@ router.get("/farmer-markets/:email", async (req, res) => {
   }
 });
 
-
 router.post("/:marketId/request", async (req, res) => {
-  const { marketId, farmerEmail, products } = req.body;
-
-  if (!marketId || !farmerEmail || !Array.isArray(products)) {
+  const { marketId } = req.params; // ✅ שלוף את marketId מ-req.params
+  const { email, products } = req.body; // ✅ שלוף את farmerEmail ו-products מ-req.body
+  const farmerEmail = email; // ✅ השתמש ב-email כ-farmerEmail
+  console.log("Incoming request to join market:", {
+    marketId,
+    farmerEmail,
+    products,
+  }); // לוג מפורט יותר
+  if (
+    !marketId ||
+    !farmerEmail ||
+    !Array.isArray(products) ||
+    products.length === 0
+  ) {
+    // ✅ הוספתי בדיקה ש-products לא ריק
+    console.log(
+      "Missing required fields - this should not happen if data is sent correctly."
+    );
     return res.status(400).send("מזהה שוק, מייל חקלאי ורשימת מוצרים נדרשים.");
   }
 
-  const session = driver.session();
+  let session; // הכרזה על סשן עם let
   try {
+    session = driver.session(); // יצירת סשן בתוך ה-try בלוק
+    console.log("Neo4j session created. Running initial checks..."); // לוג חדש לדיבוג
+
     // Check if the market and the farmer exist
     const checkResult = await session.run(
       `
@@ -524,18 +544,20 @@ router.post("/:marketId/request", async (req, res) => {
     if (checkResult.records.length === 0) {
       return res.status(404).send("השוק או החקלאי לא נמצאו.");
     }
+    console.log("Market and farmer found, proceeding with request...");
 
     // Check if a request already exists
     const existingRequest = await session.run(
-        `
-        MATCH (f:Person {email: $farmerEmail})<-[:REQUEST]-(m:Market {id: $marketId})
+      `
+        MATCH (f:Person {email: $farmerEmail})-[:REQUEST]->(m:Market {id: $marketId})
         RETURN count(m) AS count
         `,
-        { marketId, farmerEmail }
+      { marketId, farmerEmail }
     );
+    console.log("Existing request check result:", existingRequest.records);
 
-    if (existingRequest.records[0].get('count').toInt() > 0) {
-        return res.status(409).send("בקשת הצטרפות כבר קיימת עבור שוק זה.");
+    if (existingRequest.records[0].get("count").toInt() > 0) {
+      return res.status(409).send("בקשת הצטרפות כבר קיימת עבור שוק זה.");
     }
 
     // Begin a transaction to handle multiple writes
@@ -543,36 +565,18 @@ router.post("/:marketId/request", async (req, res) => {
 
     try {
       // 1. Create a REQUEST relationship between the farmer and the market
+      // ✅ שינוי: הוספנו שמירת המוצרים כמאפיין על קשר ה-REQUEST
       await tx.run(
         `
         MATCH (f:Person {email: $farmerEmail})
         MATCH (m:Market {id: $marketId})
-        MERGE (f)<-[:REQUEST]-(m)
+        MERGE (f)-[r:REQUEST]->(m)
+        SET r.requestedProducts = $productsJson // ✅ שמירת המוצרים כ-JSON string
         `,
-        { farmerEmail, marketId }
+        { farmerEmail, marketId, productsJson: JSON.stringify(products) }
       );
-
-      // 2. For each product, create a WILL_BE relationship to the market
-      for (const product of products) {
-        const productId = crypto.randomUUID();
-        await tx.run(
-          `
-          MATCH (m:Market {id: $marketId})
-          MATCH (f:Person {email: $farmerEmail})
-          MERGE (f)-[:OFFERS]->(i:Item {id: $productId, name: $productName, description: 'product description', ownerEmail: $farmerEmail})
-          MERGE (m)-[:WILL_BE {marketPrice: $price}]->(i)
-          `,
-          {
-            marketId,
-            farmerEmail,
-            productId,
-            productName: product.name,
-            price: product.price,
-          }
-        );
-      }
-      
       await tx.commit();
+      console.log("Request sent successfully with products:", products);
       res.status(200).send("הבקשה נשלחה בהצלחה.");
     } catch (txError) {
       console.error("Transaction failed, rolling back:", txError);
@@ -583,11 +587,272 @@ router.post("/:marketId/request", async (req, res) => {
     console.error("שגיאה בשליחת בקשת הצטרפות:", error);
     res.status(500).send("שגיאת שרת פנימית: " + error.message);
   } finally {
-    session.close();
+    if (session) {
+      session.close();
+    }
   }
 });
 
-module.exports = router;
+router.get("/:marketId/requests", async (req, res) => {
+  const { marketId } = req.params;
 
+  if (!marketId) {
+    return res.status(400).send("מזהה שוק נדרש.");
+  }
+
+  let session;
+  try {
+    session = driver.session();
+    console.log(`Fetching pending requests for market ID: ${marketId}`);
+
+    const result = await session.run(
+      `
+      MATCH (f:Person)-[r:REQUEST]->(m:Market {id: $marketId})
+      RETURN f.name AS farmerName, f.email AS farmerEmail, r.requestedProducts AS requestedProducts
+      `,
+      { marketId }
+    );
+
+    const requests = result.records.map((record) => {
+      const requestedProductsJson = record.get("requestedProducts");
+      let products = [];
+      if (requestedProductsJson) {
+        try {
+          products = JSON.parse(requestedProductsJson);
+        } catch (e) {
+          console.error(
+            "Error parsing requestedProducts JSON for farmer:",
+            record.get("farmerEmail"),
+            e
+          );
+        }
+      }
+      return {
+        farmerName: record.get("farmerName"),
+        farmerEmail: record.get("farmerEmail"),
+        requestedProducts: products,
+      };
+    });
+
+    res.status(200).json(requests);
+  } catch (error) {
+    console.error("שגיאה באחזור בקשות הצטרפות:", error);
+    res.status(500).send("שגיאת שרת פנימית: " + error.message);
+  } finally {
+    if (session) {
+      session.close();
+    }
+  }
+});
+// POST - אישור בקשת הצטרפות לשוק
+// POST - אישור בקשת הצטרפות לשוק
+router.post("/:marketId/requests/approve", async (req, res) => {
+  const { marketId } = req.params;
+  const { farmerEmail } = req.body;
+
+  if (!marketId || !farmerEmail) {
+    return res.status(400).send("מזהה שוק ומייל חקלאי נדרשים לאישור.");
+  }
+
+  let session;
+  try {
+    session = driver.session();
+    console.log(
+      `Attempting to approve request for farmer ${farmerEmail} in market ${marketId}`
+    );
+
+    const requestResult = await session.run(
+      `
+      MATCH (f:Person {email: $farmerEmail})-[r:REQUEST]->(m:Market {id: $marketId})
+      RETURN r.requestedProducts AS requestedProducts, f, m
+      `,
+      { farmerEmail, marketId }
+    );
+
+    if (requestResult.records.length === 0) {
+      return res.status(404).send("בקשת הצטרפות לא נמצאה.");
+    }
+
+    const requestedProductsJson =
+      requestResult.records[0].get("requestedProducts");
+
+    let productsToApprove = [];
+    if (requestedProductsJson) {
+      try {
+        productsToApprove = JSON.parse(requestedProductsJson);
+      } catch (e) {
+        console.error(
+          "Error parsing requestedProducts JSON during approval:",
+          e
+        );
+        return res.status(500).send("שגיאה פנימית: פורמט מוצרים שגוי בבקשה.");
+      }
+    }
+
+    const tx = session.beginTransaction();
+
+    try {
+      // 2. מחק את קשר ה-REQUEST
+      await tx.run(
+        `
+        MATCH (f:Person {email: $farmerEmail})-[r:REQUEST]->(m:Market {id: $marketId})
+        DELETE r
+        `,
+        { farmerEmail, marketId }
+      );
+
+      // 3. צור קשר INVITE חדש עם participate: true
+      await tx.run(
+        `
+        MATCH (f:Person {email: $farmerEmail})
+        MATCH (m:Market {id: $marketId})
+        MERGE (m)-[i:INVITE]->(f)
+        SET i.participate = true
+        `,
+        { farmerEmail, marketId }
+      );
+
+      // 4. לכל מוצר שאושר: מצא את המוצר הקיים של החקלאי וצור/עדכן WILL_BE
+      for (const product of productsToApprove) {
+        console.log(
+          `--- Processing product: ${product.name} for farmer: ${farmerEmail} ---`
+        );
+        console.log(
+          `Attempting to MATCH Item with name: '${product.name}' offered by farmer: '${farmerEmail}'`
+        );
+
+        // ✅ תיקון קריטי: הסרת ownerEmail ממאפייני Item ב-MATCH
+        const itemMatchResult = await tx.run(
+          `
+          MATCH (f:Person {email: $farmerEmail})-[:OFFERS]->(i:Item {name: $productName})
+          RETURN i
+          `,
+          {
+            farmerEmail: farmerEmail,
+            productName: product.name,
+          }
+        );
+
+        const itemNode = itemMatchResult.records[0]
+          ? itemMatchResult.records[0].get("i")
+          : null;
+
+        if (itemNode) {
+          console.log(
+            `SUCCESS: Found existing Item node for '${product.name}'. Item properties:`,
+            itemNode.properties
+          );
+          // ✅ שלב 4ב: אם המוצר נמצא, צור או עדכן את קשר ה-WILL_BE
+          await tx.run(
+            `
+            MATCH (m:Market {id: $marketId})
+            MATCH (i:Item {name: $productName}) // גם כאן, הסר ownerEmail
+            // ודא ש-i קיים בטווח השאילתה הזו, ושהוא מקושר לחקלאי הנכון
+            // (ה-MATCH הקודם כבר אימת את זה, אבל עדיף לוודא שוב אם זו שאילתה נפרדת)
+            MATCH (f:Person {email: $farmerEmail})-[:OFFERS]->(i) 
+            MERGE (m)-[wb:WILL_BE]->(i)
+            ON CREATE SET wb.marketPrice = $marketPrice
+            ON MATCH SET wb.marketPrice = $marketPrice
+            `,
+            {
+              marketId: marketId,
+              farmerEmail: farmerEmail, // נחוץ ל-MATCH החדש של Person-OFFERS-Item
+              productName: product.name,
+              marketPrice: product.price,
+            }
+          );
+          console.log(
+            `SUCCESS: WILL_BE relationship processed for product: ${product.name}.`
+          );
+        } else {
+          // ✅ אם המוצר לא נמצא, הדפס אזהרה ברורה
+          console.warn(
+            `WARNING: Item '${product.name}' offered by '${farmerEmail}' NOT FOUND via OFFERS relationship. WILL_BE relationship NOT created for this product. Check if the product exists or if 'OFFERS' relationship is correct.`
+          );
+        }
+      }
+
+      await tx.commit();
+      console.log(
+        `Request for farmer ${farmerEmail} in market ${marketId} approved successfully.`
+      );
+      res
+        .status(200)
+        .json({ success: true, message: "בקשת ההצטרפות אושרה בהצלחה." });
+    } catch (txError) {
+      console.error(
+        "Transaction failed during approval, rolling back:",
+        txError
+      );
+      await tx.rollback();
+      res.status(500).send("שגיאה באישור הבקשה: " + txError.message);
+    }
+  } catch (error) {
+    console.error("שגיאה בשליחת בקשת אישור הצטרפות:", error);
+    res.status(500).send("שגיאת שרת פנימית: " + error.message);
+  } finally {
+    if (session) {
+      session.close();
+    }
+  }
+});
+
+// PUT - דחיית בקשת הצטרפות לשוק (עדכון סטטוס בקשה קיימת)
+router.put("/:marketId/requests/decline", async (req, res) => {
+  const { marketId } = req.params;
+  const { farmerEmail } = req.body;
+
+  if (!marketId || !farmerEmail) {
+    return res.status(400).send("מזהה שוק ומייל חקלאי נדרשים לדחייה.");
+  }
+
+  let session;
+  try {
+    session = driver.session();
+    console.log(
+      `Attempting to decline request for farmer ${farmerEmail} in market ${marketId}`
+    );
+
+    const tx = session.beginTransaction();
+
+    try {
+      const result = await tx.run(
+        `
+        MATCH (f:Person {email: $farmerEmail})-[r:REQUEST]->(m:Market {id: $marketId})
+        SET r.status = 'declined'  
+        RETURN r
+        `,
+        { farmerEmail, marketId }
+      );
+
+      if (result.records.length === 0) {
+        await tx.rollback();
+        return res.status(404).send("בקשת הצטרפות לא נמצאה או כבר נדחתה.");
+      }
+
+      await tx.commit();
+      console.log(
+        `Request for farmer ${farmerEmail} in market ${marketId} declined successfully (status updated).`
+      );
+      res
+        .status(200)
+        .json({ success: true, message: "בקשת ההצטרפות נדחתה בהצלחה." });
+    } catch (txError) {
+      console.error(
+        "Transaction failed during decline, rolling back:",
+        txError
+      );
+      await tx.rollback();
+      res.status(500).send("שגיאה בדחיית הבקשה: " + txError.message);
+    }
+  } catch (error) {
+    console.error("שגיאה בשליחת בקשת דחיית הצטרפות:", error);
+    res.status(500).send("שגיאת שרת פנימית: " + error.message);
+  } finally {
+    if (session) {
+      session.close();
+    }
+  }
+});
 
 module.exports = router;
