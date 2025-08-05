@@ -385,40 +385,37 @@ router.delete("/declineInvitation", async (req, res) => {
 });
 
 router.post("/:marketId/add-product", async (req, res) => {
-  const { marketId } = req.params; // מקבלים את marketId מכתובת ה-URL
-  const { farmerEmail, itemName, price } = req.body; // מקבלים את השאר מגוף הבקשה
+  const { marketId } = req.params;
+  const { farmerEmail, itemName, price } = req.body;
 
   if (!marketId || !farmerEmail || !itemName || price == null) {
-    return res
-      .status(400)
-      .send("Market ID, farmer email, item name, and price are required.");
+    return res.status(400).json({
+      success: false,
+      message: "Market ID, farmer email, item name, and price are required.",
+    }); // ✅ תיקון: החזרת JSON
   }
 
+  let session;
   try {
-    // שלב 1: מציאת השוק והמוצר
-    // שלב 2: יצירת קשר WILL_BE בין השוק למוצר (אם לא קיים)
-    // שלב 3: לוודא שהחקלאי שמנסה להוסיף את המוצר אכן מציע אותו (OFFERS)
+    session = driver.session();
     const result = await session.run(
       `
       MATCH (m:Market {id: $marketId})
       MATCH (f:Person {email: $farmerEmail})-[offers:OFFERS]->(item:Item {name: $itemName})
 
-      // וודא שהמוצר שייך לחקלאי הזה ומקושר אליו באמצעות OFFERS
-      WHERE item.price IS NOT NULL // לוודא שיש מחיר על המוצר
+      WHERE item.price IS NOT NULL
       
-      // צור או התאם את הקשר WILL_BE בין השוק למוצר.
-      // נשתמש ב-MERGE כדי למנוע יצירה כפולה של הקשר אם הוא כבר קיים.
       MERGE (m)-[wb:WILL_BE]->(item)
-      // אם תרצה לשמור מחיר ספציפי לשוק, היית יכול להוסיף לכאן את המאפיין.
-      SET wb.marketPrice = $price // אם תרצה לשמור מחיר שונה מהמחיר המקורי של המוצר
+      SET wb.marketPrice = $price
 
       RETURN m, item, wb
       `,
-      { marketId, farmerEmail, itemName, price: parseFloat(price) } // לוודא ש-price הוא מספר
+      { marketId, farmerEmail, itemName, price: parseFloat(price) }
     );
 
     if (result.records.length === 0) {
       return res.status(404).json({
+        success: false, // ✅ תיקון: הוספת success: false
         message:
           "Could not add product. Market, farmer, or item not found, or item not offered by farmer.",
       });
@@ -427,7 +424,9 @@ router.post("/:marketId/add-product", async (req, res) => {
     console.log(
       `Product '${itemName}' added to market '${marketId}' by '${farmerEmail}' successfully.`
     );
+    // ✅ תיקון קריטי: הוספת success: true
     res.status(200).json({
+      success: true,
       message: "Product successfully added/updated in market.",
       marketId: marketId,
       itemName: itemName,
@@ -435,9 +434,14 @@ router.post("/:marketId/add-product", async (req, res) => {
   } catch (error) {
     console.error("Error adding product to market:", error);
     res.status(500).json({
+      success: false, // ✅ תיקון: הוספת success: false
       message: "Error adding product to market.",
       details: error.message,
     });
+  } finally {
+    if (session) {
+      session.close();
+    }
   }
 });
 
@@ -505,33 +509,34 @@ router.get("/farmer-markets/:email", async (req, res) => {
 });
 
 router.post("/:marketId/request", async (req, res) => {
-  const { marketId } = req.params; // ✅ שלוף את marketId מ-req.params
-  const { email, products } = req.body; // ✅ שלוף את farmerEmail ו-products מ-req.body
-  const farmerEmail = email; // ✅ השתמש ב-email כ-farmerEmail
+  const { marketId } = req.params;
+  const { email, products } = req.body;
+  const farmerEmail = email;
   console.log("Incoming request to join market:", {
     marketId,
     farmerEmail,
     products,
-  }); // לוג מפורט יותר
+  });
   if (
     !marketId ||
     !farmerEmail ||
     !Array.isArray(products) ||
     products.length === 0
   ) {
-    // ✅ הוספתי בדיקה ש-products לא ריק
     console.log(
       "Missing required fields - this should not happen if data is sent correctly."
     );
-    return res.status(400).send("מזהה שוק, מייל חקלאי ורשימת מוצרים נדרשים.");
+    return res.status(400).json({
+      success: false,
+      message: "מזהה שוק, מייל חקלאי ורשימת מוצרים נדרשים.",
+    }); // ✅ תיקון: החזרת JSON גם בשגיאה
   }
 
-  let session; // הכרזה על סשן עם let
+  let session;
   try {
-    session = driver.session(); // יצירת סשן בתוך ה-try בלוק
-    console.log("Neo4j session created. Running initial checks..."); // לוג חדש לדיבוג
+    session = driver.session();
+    console.log("Neo4j session created. Running initial checks...");
 
-    // Check if the market and the farmer exist
     const checkResult = await session.run(
       `
       MATCH (m:Market {id: $marketId})
@@ -542,11 +547,12 @@ router.post("/:marketId/request", async (req, res) => {
     );
 
     if (checkResult.records.length === 0) {
-      return res.status(404).send("השוק או החקלאי לא נמצאו.");
+      return res
+        .status(404)
+        .json({ success: false, message: "השוק או החקלאי לא נמצאו." }); // ✅ תיקון: החזרת JSON
     }
     console.log("Market and farmer found, proceeding with request...");
 
-    // Check if a request already exists
     const existingRequest = await session.run(
       `
         MATCH (f:Person {email: $farmerEmail})-[:REQUEST]->(m:Market {id: $marketId})
@@ -557,35 +563,41 @@ router.post("/:marketId/request", async (req, res) => {
     console.log("Existing request check result:", existingRequest.records);
 
     if (existingRequest.records[0].get("count").toInt() > 0) {
-      return res.status(409).send("בקשת הצטרפות כבר קיימת עבור שוק זה.");
+      return res.status(409).json({
+        success: false,
+        message: "בקשת הצטרפות כבר קיימת עבור שוק זה.",
+      }); // ✅ תיקון: החזרת JSON
     }
 
-    // Begin a transaction to handle multiple writes
     const tx = session.beginTransaction();
 
     try {
-      // 1. Create a REQUEST relationship between the farmer and the market
-      // ✅ שינוי: הוספנו שמירת המוצרים כמאפיין על קשר ה-REQUEST
       await tx.run(
         `
         MATCH (f:Person {email: $farmerEmail})
         MATCH (m:Market {id: $marketId})
         MERGE (f)-[r:REQUEST]->(m)
-        SET r.requestedProducts = $productsJson // ✅ שמירת המוצרים כ-JSON string
+        SET r.requestedProducts = $productsJson
         `,
         { farmerEmail, marketId, productsJson: JSON.stringify(products) }
       );
       await tx.commit();
       console.log("Request sent successfully with products:", products);
-      res.status(200).send("הבקשה נשלחה בהצלחה.");
+      // ✅ תיקון קריטי: החזרת JSON עם success: true
+      res.status(200).json({ success: true, message: "הבקשה נשלחה בהצלחה." });
     } catch (txError) {
       console.error("Transaction failed, rolling back:", txError);
       await tx.rollback();
-      res.status(500).send("שגיאה בשליחת הבקשה: " + txError.message);
+      res.status(500).json({
+        success: false,
+        message: "שגיאה בשליחת הבקשה: " + txError.message,
+      }); // ✅ תיקון: החזרת JSON
     }
   } catch (error) {
     console.error("שגיאה בשליחת בקשת הצטרפות:", error);
-    res.status(500).send("שגיאת שרת פנימית: " + error.message);
+    res
+      .status(500)
+      .json({ success: false, message: "שגיאת שרת פנימית: " + error.message }); // ✅ תיקון: החזרת JSON
   } finally {
     if (session) {
       session.close();
