@@ -20,7 +20,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.0.107:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -334,6 +334,26 @@ public class Service {
         }
     }
 
+    public static String getMarketPendingRequests(String marketId) throws IOException {
+        String path = "markets/" + marketId + "/requests";
+        return get(path);
+    }
+
+
+
+    public static String approveMarketJoinRequest(String marketId, String farmerEmail) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("farmerEmail", farmerEmail);
+        String path = "markets/" + marketId + "/requests/approve";
+        return post(path, jsonParam.toString());
+    }
+
+    public static String declineMarketJoinRequest(String marketId, String farmerEmail) throws IOException, JSONException {
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("farmerEmail", farmerEmail);
+        String path = "markets/" + marketId + "/requests/decline";
+        return put(path, jsonParam.toString()); // ✅ שינוי: קריאה למתודת ה-PUT החדשה
+    }
 
 
 }

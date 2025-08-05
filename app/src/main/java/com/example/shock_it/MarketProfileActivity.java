@@ -15,8 +15,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.content.res.ColorStateList;
 
 import androidx.annotation.Nullable;
@@ -32,40 +30,48 @@ import com.example.shock_it.ui.map.farmerProfile.farmerProfile;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import services.Service;
 import classes.Item;
+import com.example.shock_it.MarketProfileMVP.MarketProfileContract;
+import com.example.shock_it.MarketProfileMVP.MarketProfilePresenter;
 
-public class MarketProfileActivity extends AppCompatActivity {
+import com.example.shock_it.utils.FarmerCardBuilder;
 
+import com.example.shock_it.dialogs.PendingRequestsDialogFragment;
+
+
+public class MarketProfileActivity extends AppCompatActivity implements MarketProfileContract.View {
+
+    // רכיבי UI
     Button backToMainButton;
     Button navigateButton;
     Button manageMarketButton;
+    Button viewRequestsButton;
     ImageView marketImage;
     TextView marketName, marketLocation, marketHours, marketDate;
     LinearLayout farmersListContainer;
     FloatingActionButton fabAddProduct;
-
     private View marketProfileContentScrollView;
 
+    // נתוני שוק ומשתמש
     String location;
     String date;
     String marketId;
     String userEmail;
+
+    // Presenter instance
+    private MarketProfileContract.Presenter presenter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_market_profile);
 
+        // אתחול רכיבי UI
         marketProfileContentScrollView = findViewById(R.id.market_profile_content_scroll_view);
         marketImage = findViewById(R.id.marketImage);
         marketName = findViewById(R.id.marketName);
@@ -76,27 +82,36 @@ public class MarketProfileActivity extends AppCompatActivity {
         backToMainButton = findViewById(R.id.backToMainButton);
         navigateButton = findViewById(R.id.navigateButton);
         manageMarketButton = findViewById(R.id.manageMarketButton);
+        viewRequestsButton = findViewById(R.id.viewRequestsButton);
         fabAddProduct = findViewById(R.id.fab_add_product);
 
-        processIntentAndLoadMarket(getIntent());
-
+        // קבלת מייל המשתמש מה-SharedPreferences
         SharedPreferences prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         userEmail = prefs.getString("user_email", null);
         Log.d("MarketProfileActivity", "Logged-in user email: " + userEmail);
 
+        // אתחול ה-Presenter
+        presenter = new MarketProfilePresenter(userEmail, null); // marketId יועבר במתודות, לא צריך לאתחל כאן
+        presenter.attachView(this);
+
+        // טיפול ב-Intent וטעינת פרופיל השוק
+        processIntentAndLoadMarket(getIntent());
+
+        // הגדרות ראשוניות לכפתורים
         manageMarketButton.setVisibility(View.GONE);
         manageMarketButton.setEnabled(false);
+        viewRequestsButton.setVisibility(View.GONE);
+        viewRequestsButton.setEnabled(false);
         fabAddProduct.setVisibility(View.GONE);
 
+        // Listeners
         backToMainButton.setOnClickListener(v -> {
             Intent backIntent;
-
             if (userEmail == null || userEmail.isEmpty()) {
                 backIntent = new Intent(MarketProfileActivity.this, MainActivity.class);
             } else {
                 backIntent = new Intent(MarketProfileActivity.this, FarmerHomeActivity.class);
             }
-
             backIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(backIntent);
             finish();
@@ -111,7 +126,6 @@ public class MarketProfileActivity extends AppCompatActivity {
                 Toast.makeText(MarketProfileActivity.this, "שגיאה פנימית: Market ID אינו זמין. 🛑", Toast.LENGTH_LONG).show();
                 return;
             }
-
             ManageMarketFragment manageMarketFragment = new ManageMarketFragment();
             Bundle args = new Bundle();
             args.putString("marketId", marketId);
@@ -129,28 +143,42 @@ public class MarketProfileActivity extends AppCompatActivity {
             fragmentTransaction.commit();
         });
 
+        viewRequestsButton.setOnClickListener(v -> {
+            if (marketId == null || marketId.isEmpty()) {
+                showToast("שגיאה: מזהה שוק אינו זמין.");
+                return;
+            }
+            presenter.fetchPendingRequests(marketId);
+        });
+
+
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 FragmentManager fragmentManager = getSupportFragmentManager();
-
                 if (findViewById(R.id.fragment_container_manage_market).getVisibility() == View.VISIBLE) {
                     fragmentManager.popBackStack("manageMarket", FragmentManager.POP_BACK_STACK_INCLUSIVE);
                     marketProfileContentScrollView.setVisibility(View.VISIBLE);
                     findViewById(R.id.fragment_container_manage_market).setVisibility(View.GONE);
                     fabAddProduct.setVisibility(View.VISIBLE);
-                    loadMarketProfile();
+                    presenter.loadMarketProfile(location, date, userEmail);
                 } else if (findViewById(R.id.fragment_container_farmer_profile).getVisibility() == View.VISIBLE) {
                     fragmentManager.popBackStack("farmerProfile", FragmentManager.POP_BACK_STACK_INCLUSIVE);
                     marketProfileContentScrollView.setVisibility(View.VISIBLE);
                     findViewById(R.id.fragment_container_farmer_profile).setVisibility(View.GONE);
-                    loadMarketProfile();
+                    presenter.loadMarketProfile(location, date, userEmail);
                 } else {
                     setEnabled(false);
                     MarketProfileActivity.super.onBackPressed();
                 }
             }
         });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        presenter.detachView();
     }
 
     @Override
@@ -164,18 +192,19 @@ public class MarketProfileActivity extends AppCompatActivity {
         if (intent != null) {
             location = intent.getStringExtra("location");
             date = intent.getStringExtra("date");
-            Log.d("MarketProfileActivity", "Processing Intent. Location: " + location + ", Date: " + date);
+
+            Log.d("MarketProfileActivity", "Processing Intent. Location: " + location + ", Date: " + date); // ✅ הסר את ה-marketId מהלוג כאן
 
             clearFragmentContainers();
             if (marketLocation != null) {
                 marketLocation.setText("📍 מיקום: " + location);
             }
             if (marketDate != null) {
-                marketDate.setText("� תאריך: " + date);
+                marketDate.setText("📅 תאריך: " + date);
             }
 
             if (location != null && date != null) {
-                loadMarketProfile();
+                presenter.loadMarketProfile(location, date, userEmail);
             } else {
                 Log.e("MarketProfileActivity", "Location or Date is null in Intent. Cannot load market profile.");
                 Toast.makeText(this, "שגיאה בנתוני השוק. לא ניתן לטעון.", Toast.LENGTH_LONG).show();
@@ -226,308 +255,222 @@ public class MarketProfileActivity extends AppCompatActivity {
         }
     }
 
-    private void loadMarketProfile() {
-        new Thread(() -> {
-            Log.d("MarketProfileActivity", "Attempting to load market profile for: " + location + ", " + date);
-            try {
-                String response = Service.getMarketProfile(location, date);
-                Log.d("MarketProfileActivity", "Server Response for Market Profile: " + response);
+    @Override
+    public void showLoading() {
+        runOnUiThread(() -> {
+            Log.d("MarketProfileActivity", "Showing loading indicator...");
+        });
+    }
 
-                JSONObject json = new JSONObject(response);
+    @Override
+    public void hideLoading() {
+        runOnUiThread(() -> {
+            Log.d("MarketProfileActivity", "Hiding loading indicator.");
+        });
+    }
 
-                String name = json.optString("location", location);
-                String hours = json.optString("hours", "09:00 - 14:00");
-                String founderName = json.optString("founderName", null);
-                String founderEmail = json.optString("founderEmail", null);
-                marketId = json.optString("id", null);
+    @Override
+    public void displayMarketProfile(String name, String hours) {
+        runOnUiThread(() -> {
+            marketName.setText(name);
+            marketHours.setText("🕒 שעות: " + hours);
+        });
+    }
 
-                JSONArray participatingFarmersArray = json.optJSONArray("participatingFarmers");
-                JSONArray invitedFarmersArray = json.optJSONArray("invitedFarmers");
-                JSONArray pendingRequestsArray = json.optJSONArray("pendingRequests");
-                JSONArray marketProductsArray = json.optJSONArray("marketProducts");
+    // ✅ שינוי: קבלת isUserFounder ישירות מה-Presenter
+    @Override
+    public void updateFabState(boolean isUserFounder, boolean isParticipating, boolean isInvited, boolean isRequestPending) {
+        runOnUiThread(() -> {
+            int activeColor = Color.parseColor("#42A5F5");
+            int disabledColor = Color.parseColor("#BDBDBD");
 
-                // --- שינויים עיקריים כאן לצורך דיבוג ---
-                Log.d("MarketProfileActivity_DEBUG", "-------------------- Server Arrays Content --------------------");
-                Log.d("MarketProfileActivity_DEBUG", "Participating Farmers: " + (participatingFarmersArray != null ? participatingFarmersArray.toString() : "null"));
-                Log.d("MarketProfileActivity_DEBUG", "Invited Farmers: " + (invitedFarmersArray != null ? invitedFarmersArray.toString() : "null"));
-                Log.d("MarketProfileActivity_DEBUG", "Pending Requests: " + (pendingRequestsArray != null ? pendingRequestsArray.toString() : "null"));
-                Log.d("MarketProfileActivity_DEBUG", "-------------------------------------------------------------");
-
-                Map<String, List<JSONObject>> farmerProductsMap = new HashMap<>();
-                if (marketProductsArray != null) {
-                    for (int i = 0; i < marketProductsArray.length(); i++) {
-                        JSONObject productObj = marketProductsArray.getJSONObject(i);
-                        String offeringFarmerEmail = productObj.optString("offeringFarmerEmail");
-                        if (offeringFarmerEmail != null && !offeringFarmerEmail.isEmpty()) {
-                            if (!farmerProductsMap.containsKey(offeringFarmerEmail)) {
-                                farmerProductsMap.put(offeringFarmerEmail, new ArrayList<>());
-                            }
-                            farmerProductsMap.get(offeringFarmerEmail).add(productObj);
-                        }
-                    }
-                }
-
-                boolean isUserFounder = (userEmail != null && founderEmail != null && userEmail.equals(founderEmail));
-                boolean isUserParticipating = isUserFounder;
-                boolean isUserInvited = false;
-                boolean isUserRequestPending = false;
-
-
-                // בדיקה האם המשתמש כבר משתתף
-                if (!isUserParticipating && participatingFarmersArray != null) {
-                    for (int i = 0; i < participatingFarmersArray.length(); i++) {
-                        JSONObject farmerObj = participatingFarmersArray.getJSONObject(i);
-                        if (userEmail != null && userEmail.equals(farmerObj.optString("email"))) {
-                            isUserParticipating = true;
-                            break;
-                        }
-                    }
-                }
-
-                // בדיקה האם המשתמש מוזמן
-                if (!isUserParticipating && invitedFarmersArray != null) {
-                    for (int i = 0; i < invitedFarmersArray.length(); i++) {
-                        JSONObject invitedObj = invitedFarmersArray.getJSONObject(i);
-                        if (userEmail != null && userEmail.equals(invitedObj.optString("email"))) {
-                            isUserInvited = true;
-                            break;
-                        }
-                    }
-                }
-
-                // בדיקה האם למשתמש יש בקשה ממתינה
-                if (!isUserParticipating && !isUserInvited && pendingRequestsArray != null) {
-                    for (int i = 0; i < pendingRequestsArray.length(); i++) {
-                        try {
-                            JSONObject requestObj = pendingRequestsArray.getJSONObject(i);
-                            String requestedFarmerEmail = requestObj.optString("email");
-                            if (userEmail != null && userEmail.equals(requestedFarmerEmail)) {
-                                isUserRequestPending = true;
-                                break;
-                            }
-                        } catch (JSONException e) {
-                            Log.e("MarketProfileActivity", "Error parsing pending request object: " + e.getMessage(), e);
-                        }
-                    }
-                }
-
-                final boolean finalIsUserParticipating = isUserParticipating;
-                final boolean finalIsUserFounder = isUserFounder;
-                final boolean finalIsUserInvited = isUserInvited;
-                final boolean finalIsUserRequestPending = isUserRequestPending;
-
-                // --- לוג נוסף לצורך דיבוג ---
-                Log.d("MarketProfileActivity_DEBUG", "isUserParticipating: " + finalIsUserParticipating);
-                Log.d("MarketProfileActivity_DEBUG", "isUserInvited: " + finalIsUserInvited);
-                Log.d("MarketProfileActivity_DEBUG", "isUserRequestPending: " + finalIsUserRequestPending);
-                // -----------------------------
-
-                runOnUiThread(() -> {
-                    marketName.setText(name);
-                    marketHours.setText("🕒 שעות: " + hours);
-
-                    // לוגיקה לכפתור 'ניהול השוק' - מוצג רק למייסד
-                    if (finalIsUserFounder) {
-                        manageMarketButton.setVisibility(View.VISIBLE);
-                        manageMarketButton.setEnabled(true);
-                    } else {
-                        manageMarketButton.setVisibility(View.GONE);
-                        manageMarketButton.setEnabled(false);
-                    }
-
-                    // קריאה למתודה החדשה שתטפל רק במצב הכפתור הצף
-                    updateFloatingActionButtonState(finalIsUserParticipating, finalIsUserInvited, finalIsUserRequestPending);
-
-                    // שאר הקוד של טעינת החקלאים בפרופיל נשאר ללא שינוי
-                    farmersListContainer.removeAllViews();
-                    boolean atLeastOneFarmerDisplayed = false;
-
-                    if (founderName != null && !founderName.isEmpty()) {
-                        JSONArray founderProductsJsonArray = null;
-                        if (farmerProductsMap.containsKey(founderEmail)) {
-                            founderProductsJsonArray = new JSONArray(farmerProductsMap.get(founderEmail));
-                        }
-                        addFarmerToDisplay(founderName, founderEmail, founderProductsJsonArray, true);
-                        atLeastOneFarmerDisplayed = true;
-                    }
-
-                    if (participatingFarmersArray != null && participatingFarmersArray.length() > 0) {
-                        for (int i = 0; i < participatingFarmersArray.length(); i++) {
-                            try {
-                                JSONObject farmerObj = participatingFarmersArray.getJSONObject(i);
-                                String farmerName = farmerObj.optString("name");
-                                String farmerEmailInMarket = farmerObj.optString("email");
-
-                                if (founderEmail != null && founderEmail.equals(farmerEmailInMarket)) {
-                                    continue;
-                                }
-
-                                JSONArray farmerSpecificProductsArray = null;
-                                if (farmerProductsMap.containsKey(farmerEmailInMarket)) {
-                                    farmerSpecificProductsArray = new JSONArray(farmerProductsMap.get(farmerEmailInMarket));
-                                }
-
-                                addFarmerToDisplay(farmerName, farmerEmailInMarket, farmerSpecificProductsArray, false);
-                                atLeastOneFarmerDisplayed = true;
-
-                            } catch (JSONException e) {
-                                Log.e("MarketProfileActivity", "Error parsing farmer object in array: " + e.getMessage(), e);
-                            }
-                        }
-                    }
-
-                    if (!atLeastOneFarmerDisplayed) {
-                        TextView noFarmers = new TextView(MarketProfileActivity.this);
-                        noFarmers.setText("אין חקלאים משתתפים כרגע.");
-                        noFarmers.setTextSize(16);
-                        noFarmers.setPadding(0, 4, 0, 4);
-                        noFarmers.setTextColor(getResources().getColor(android.R.color.darker_gray));
-                        farmersListContainer.addView(noFarmers);
-                    }
-                });
-
-            } catch (IOException e) {
-                Log.e("MarketProfileActivity", "Network error loading market profile: " + e.getMessage(), e);
-                runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: בעיית רשת. נסה שוב.", Toast.LENGTH_LONG).show();
-                    fabAddProduct.setVisibility(View.GONE);
-                });
-            } catch (JSONException e) {
-                Log.e("MarketProfileActivity", "JSON parsing error loading market profile: " + e.getMessage(), e);
-                runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת פרופיל השוק: פורמט נתונים שגוי.", Toast.LENGTH_LONG).show();
-                    fabAddProduct.setVisibility(View.GONE);
-                });
+            // ✅ ודא ש-marketId של ה-Activity מעודכן.
+            // הוא אמור להגיע מה-Intent ב-processIntentAndLoadMarket.
+            // אם הוא עדיין null/ריק, זה מצביע על בעיה באופן שבו ה-Activity נפתח.
+            if (this.marketId == null || this.marketId.isEmpty()) {
+                Log.e("MarketProfileActivity", "marketId is null or empty in updateFabState. Cannot determine button visibility.");
+                fabAddProduct.setVisibility(View.GONE);
+                viewRequestsButton.setVisibility(View.GONE);
+                manageMarketButton.setVisibility(View.GONE); // ודא שגם זה מוסתר
+                return;
             }
-        }).start();
-    }
 
-    private void updateFloatingActionButtonState(boolean isParticipating, boolean isInvited, boolean isRequestPending) {
-        int activeColor = Color.parseColor("#42A5F5");
-        int disabledColor = Color.parseColor("#BDBDBD");
-
-        if (userEmail == null || marketId == null || marketId.isEmpty()) {
-            fabAddProduct.setVisibility(View.GONE);
-            return;
-        }
-
-        fabAddProduct.setVisibility(View.VISIBLE);
-        fabAddProduct.setEnabled(true);
-        // השתמש ב-ColorStateList כדי לצבוע את הכפתור בצבע הרגיל
-        fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
-
-        if (isParticipating) {
-            Log.d("FAB_LOGIC", "User is participating. Setting fab to ADD PRODUCT.");
-            fabAddProduct.setImageResource(R.drawable.ic_add);
-            fabAddProduct.setOnClickListener(v -> showAddProductToMarketDialog(userEmail, marketId, false));
-        } else if (isRequestPending) {
-            Log.d("FAB_LOGIC", "User has a pending join request. Disabling button.");
-            fabAddProduct.setImageResource(R.drawable.ic_send);
-            fabAddProduct.setEnabled(false); // הופך את הכפתור ללא פעיל
-            // ⭐ תיקון: השתמש ב-ColorStateList עם Color.parseColor
-            fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(disabledColor));
-            fabAddProduct.setOnClickListener(null); // חשוב: הסרת ה-OnClickListener
-        } else if (isInvited) {
-            Log.d("FAB_LOGIC", "User has an invite. Setting fab to ACCEPT INVITE.");
-            fabAddProduct.setImageResource(R.drawable.ic_done);
-            // כאן תוכל להוסיף OnClickListener שיטפל באישור ההזמנה, כפי שציינת
-            // fabAddProduct.setOnClickListener(v -> handleInvitationAcceptance(userEmail, marketId));
-        } else {
-            Log.d("FAB_LOGIC", "User is not participating, invited, or has a request. Setting fab to JOIN REQUEST.");
-            fabAddProduct.setImageResource(R.drawable.ic_send);
-            fabAddProduct.setOnClickListener(v -> showAddProductToMarketDialog(userEmail, marketId, true));
-        }
-    }
-
-
-    private void addFarmerToDisplay(String farmerName, String farmerEmail, @Nullable JSONArray productsArray, boolean isFounder) {
-        CardView farmerCard = new CardView(this);
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        cardParams.setMargins(0, 0, 0, 16);
-        farmerCard.setLayoutParams(cardParams);
-        farmerCard.setCardElevation(4f);
-        farmerCard.setRadius(8f);
-        farmerCard.setContentPadding(16, 16, 16, 16);
-
-        LinearLayout cardContentLayout = new LinearLayout(this);
-        cardContentLayout.setOrientation(LinearLayout.VERTICAL);
-        cardContentLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-
-        TextView farmerNameTv = new TextView(this);
-        String displayName = "• " + farmerName;
-        if (isFounder) {
-            displayName += " (מייסד)";
-            farmerNameTv.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
-            farmerNameTv.setTextSize(18);
-            farmerNameTv.setTypeface(null, android.graphics.Typeface.BOLD);
-        } else {
-            farmerNameTv.setTextColor(getResources().getColor(android.R.color.black));
-            farmerNameTv.setTextSize(16);
-        }
-        farmerNameTv.setText(displayName);
-        farmerNameTv.setPadding(0, 0, 0, 4);
-
-        farmerNameTv.setClickable(true);
-        farmerNameTv.setFocusable(true);
-
-        final String finalFarmerEmail = farmerEmail;
-        farmerNameTv.setOnClickListener(v -> {
-            if (finalFarmerEmail != null && !finalFarmerEmail.isEmpty()) {
-                Log.d("MarketProfileActivity", "Clicked on farmer: " + finalFarmerEmail);
-                navigateToFarmerProfile(finalFarmerEmail);
+            // --- לוגיקה עבור כפתורי המייסד (manageMarketButton ו-viewRequestsButton) ---
+            Log.d("ButtonVisibility", "updateFabState: isUserFounder = " + isUserFounder);
+            if (isUserFounder) {
+                // אם המשתמש הוא מייסד השוק
+                manageMarketButton.setVisibility(View.VISIBLE);
+                manageMarketButton.setEnabled(true);
+                viewRequestsButton.setVisibility(View.VISIBLE);
+                viewRequestsButton.setEnabled(true);
+                Log.d("ButtonVisibility", "Founder buttons (Manage Market, View Requests) set VISIBLE and ENABLED.");
             } else {
-                Toast.makeText(this, "שגיאה: מייל החקלאי לא זמין.", Toast.LENGTH_SHORT).show();
+                // אם המשתמש אינו מייסד השוק
+                manageMarketButton.setVisibility(View.GONE);
+                manageMarketButton.setEnabled(false);
+                viewRequestsButton.setVisibility(View.GONE);
+                viewRequestsButton.setEnabled(false);
+                Log.d("ButtonVisibility", "Founder buttons (Manage Market, View Requests) set GONE and DISABLED.");
+            }
+
+            // --- לוגיקה עבור כפתור הוספת מוצר (fabAddProduct) ---
+            Log.d("ButtonVisibility", "updateFabState: isParticipating = " + isParticipating +
+                    ", isRequestPending = " + isRequestPending +
+                    ", isInvited = " + isInvited);
+
+            if (isParticipating) {
+                // אם המשתמש משתתף בשוק (כולל המייסד, שכבר נחשב משתתף)
+                fabAddProduct.setVisibility(View.VISIBLE);
+                fabAddProduct.setEnabled(true);
+                fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
+                fabAddProduct.setImageResource(R.drawable.ic_add); // אייקון להוספת מוצר
+                fabAddProduct.setOnClickListener(v -> presenter.handleAddProductClick(userEmail, marketId, false));
+                Log.d("ButtonVisibility", "FAB set to ADD PRODUCT (User is Participating).");
+            } else if (isRequestPending) {
+                // אם למשתמש יש בקשת הצטרפות ממתינה
+                fabAddProduct.setVisibility(View.VISIBLE); // או GONE אם לא רוצים להציג כלל
+                fabAddProduct.setEnabled(false); // לא ניתן ללחוץ שוב
+                fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(disabledColor)); // צבע אפור
+                fabAddProduct.setImageResource(R.drawable.ic_send); // אייקון של שליחה
+                fabAddProduct.setOnClickListener(null); // אין פעולה בלחיצה
+                Log.d("ButtonVisibility", "FAB set to PENDING REQUEST (User has pending request).");
+            } else if (isInvited) {
+                // אם המשתמש הוזמן (אבל עוד לא אישר)
+                fabAddProduct.setVisibility(View.VISIBLE);
+                fabAddProduct.setEnabled(true);
+                fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
+                fabAddProduct.setImageResource(R.drawable.ic_done); // אייקון של אישור
+                // fabAddProduct.setOnClickListener(v -> presenter.handleInvitationAcceptance(userEmail, marketId)); // יש לממש
+                Log.d("ButtonVisibility", "FAB set to ACCEPT INVITE (User is Invited).");
+            } else {
+                // אם המשתמש לא מייסד, לא משתתף, לא הוזמן ולא שלח בקשה
+                fabAddProduct.setVisibility(View.VISIBLE); // או GONE אם לא רוצים להציג כלל
+                fabAddProduct.setEnabled(true);
+                fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
+                fabAddProduct.setImageResource(R.drawable.ic_send); // אייקון של שליחה
+                fabAddProduct.setOnClickListener(v -> presenter.handleAddProductClick(userEmail, marketId, true)); // שלח בקשת הצטרפות
+                Log.d("ButtonVisibility", "FAB set to SEND JOIN REQUEST (User is not involved).");
             }
         });
-
-        cardContentLayout.addView(farmerNameTv);
-
-        LinearLayout farmerProductsLayout = new LinearLayout(this);
-        farmerProductsLayout.setOrientation(LinearLayout.VERTICAL);
-        farmerProductsLayout.setPadding(16, 0, 0, 0);
-        cardContentLayout.addView(farmerProductsLayout);
-
-        if (productsArray != null && productsArray.length() > 0) {
-            TextView productsTitle = new TextView(this);
-            productsTitle.setText("מוצרים המוצעים על ידו:");
-            productsTitle.setTextSize(14);
-            productsTitle.setTypeface(null, android.graphics.Typeface.BOLD);
-            productsTitle.setPadding(0, 8, 0, 4);
-            farmerProductsLayout.addView(productsTitle);
-
-            for (int i = 0; i < productsArray.length(); i++) {
-                try {
-                    JSONObject productObj = productsArray.getJSONObject(i);
-                    String productName = productObj.optString("name", "מוצר ללא שם");
-                    double productPrice = productObj.optDouble("price", 0.0);
-
-                    TextView productTv = new TextView(this);
-                    productTv.setText("  - " + productName + " (" + String.format("%.2f", productPrice) + " ₪)");
-                    productTv.setTextSize(14);
-                    productTv.setTextColor(getResources().getColor(android.R.color.darker_gray));
-                    farmerProductsLayout.addView(productTv);
-                } catch (JSONException e) {
-                    Log.e("MarketProfileActivity", "Error parsing product object for farmer: " + e.getMessage());
-                }
-            }
-        } else {
-            TextView noProductsTv = new TextView(this);
-            noProductsTv.setText("  - אין מוצרים מוצעים על ידו בשוק זה.");
-            noProductsTv.setTextSize(14);
-            noProductsTv.setTextColor(getResources().getColor(android.R.color.darker_gray));
-            farmerProductsLayout.addView(noProductsTv);
-        }
-
-        farmerCard.addView(cardContentLayout);
-        farmersListContainer.addView(farmerCard);
     }
 
+    @Override
+    public void clearFarmersList() {
+        runOnUiThread(() -> {
+            farmersListContainer.removeAllViews();
+        });
+    }
+
+    @Override
+    public void addFarmerCard(String farmerName, String farmerEmail, @Nullable JSONArray productsArray, boolean isFounder) {
+        runOnUiThread(() -> {
+            FarmerCardBuilder.OnFarmerClickListener farmerClickListener = this::navigateToFarmerProfile;
+            CardView farmerCard = FarmerCardBuilder.buildFarmerCard(
+                    this,
+                    farmerName,
+                    farmerEmail,
+                    productsArray,
+                    isFounder,
+                    farmerClickListener
+            );
+            farmersListContainer.addView(farmerCard);
+        });
+    }
+
+    @Override
+    public void showNoFarmersMessage() {
+        runOnUiThread(() -> {
+            TextView noFarmers = new TextView(this);
+            noFarmers.setText("אין חקלאים משתתפים כרגע.");
+            noFarmers.setTextSize(16);
+            noFarmers.setPadding(0, 4, 0, 4);
+            noFarmers.setTextColor(getResources().getColor(android.R.color.darker_gray));
+            farmersListContainer.addView(noFarmers);
+        });
+    }
+
+    @Override
+    public void showToast(String message) {
+        runOnUiThread(() -> {
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+        });
+    }
+
+    @Override
+    public void showMarketNotFoundError() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "השוק לא נמצא.", Toast.LENGTH_LONG).show();
+        });
+    }
+
+    @Override
+    public void showNetworkError() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "שגיאה בטעינת פרופיל השוק: בעיית רשת. נסה שוב.", Toast.LENGTH_LONG).show();
+            fabAddProduct.setVisibility(View.GONE);
+        });
+    }
+
+    @Override
+    public void showJsonParsingError() {
+        runOnUiThread(() -> {
+            Toast.makeText(this, "שגיאה בטעינת פרופיל השוק: פורמט נתונים שגוי.", Toast.LENGTH_LONG).show();
+            fabAddProduct.setVisibility(View.GONE);
+        });
+    }
+
+    @Override
+    public void showSelectProductDialog(List<Item> farmerProducts, Map<String, Double> itemPricesMap, boolean isJoinRequest) {
+        runOnUiThread(() -> {
+            SelectProductForMarketDialogFragment dialog =
+                    SelectProductForMarketDialogFragment.newInstance(farmerProducts, itemPricesMap);
+
+            dialog.setOnProductSelectedListener((selectedItem, marketPrice) -> {
+                if (selectedItem != null) {
+                    if (isJoinRequest) {
+                        presenter.sendJoinRequest(userEmail, marketId, selectedItem.getName(), marketPrice);
+                    } else {
+                        presenter.addProductToMarket(userEmail, marketId, selectedItem.getName(), marketPrice);
+                    }
+                }
+            });
+            dialog.show(getSupportFragmentManager(), "SelectProductDialog");
+        });
+    }
+
+    @Override
+    public void refreshMarketProfile() {
+        runOnUiThread(() -> {
+            presenter.loadMarketProfile(location, date, userEmail);
+        });
+    }
+
+    @Override
+    public void showPendingRequestsDialog(List<JSONObject> pendingRequests) {
+        runOnUiThread(() -> {
+            PendingRequestsDialogFragment dialog = PendingRequestsDialogFragment.newInstance(pendingRequests, marketId);
+            dialog.setOnRequestActionListener(new PendingRequestsDialogFragment.OnRequestActionListener() {
+                @Override
+                public void onRequestApproved(String farmerEmail) {
+                    presenter.approveJoinRequest(marketId, farmerEmail);
+                }
+
+                @Override
+                public void onRequestDeclined(String farmerEmail) {
+                    presenter.declineJoinRequest(marketId, farmerEmail);
+                }
+            });
+            dialog.show(getSupportFragmentManager(), "PendingRequestsDialog");
+        });
+    }
+
+    @Override
+    public void setMarketId(String marketId) {
+        runOnUiThread(() -> {
+            this.marketId = marketId;
+            Log.d("MarketIdDebug", "MarketProfileActivity - Market ID set by Presenter: " + this.marketId);
+        });
+    }
     private void navigateToFarmerProfile(String farmerEmail) {
         farmerProfile farmerProfileFragment = new farmerProfile();
         Bundle args = new Bundle();
@@ -546,109 +489,5 @@ public class MarketProfileActivity extends AppCompatActivity {
         fragmentTransaction.commit();
 
         Toast.makeText(this, "טוען פרופיל של: " + farmerEmail, Toast.LENGTH_SHORT).show();
-    }
-
-    private void showAddProductToMarketDialog(String farmerEmail, String marketId, boolean isJoinRequest) {
-        if (farmerEmail == null || marketId == null || marketId.isEmpty()) {
-            Toast.makeText(this, "שגיאה: חסרים פרטים להוספת מוצר.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        new Thread(() -> {
-            try {
-                String response = Service.getFarmerItems(farmerEmail);
-                JSONArray productsJsonArray = new JSONArray(response);
-
-                List<Item> farmerProducts = new ArrayList<>();
-                Map<String, Double> itemPricesMap = new HashMap<>();
-
-                for (int i = 0; i < productsJsonArray.length(); i++) {
-                    JSONObject productObj = productsJsonArray.getJSONObject(i);
-                    String productName = productObj.optString("name");
-                    String productDescription = productObj.optString("description");
-                    double productPrice = productObj.optDouble("price", 0.0);
-
-                    Item item = new Item(productName, productDescription);
-                    farmerProducts.add(item);
-                    itemPricesMap.put(productName, productPrice);
-                }
-
-                runOnUiThread(() -> {
-                    if (farmerProducts.isEmpty()) {
-                        Toast.makeText(MarketProfileActivity.this, "אין לך מוצרים זמינים להוסיף. וודא שהוספת מוצרים לפרופיל האישי שלך.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    SelectProductForMarketDialogFragment dialog =
-                            SelectProductForMarketDialogFragment.newInstance(farmerProducts, itemPricesMap);
-
-                    dialog.setOnProductSelectedListener((selectedItem, marketPrice) -> {
-                        if (selectedItem != null) {
-                            if (isJoinRequest) {
-                                sendJoinRequestWithSelectedProduct(farmerEmail, marketId, selectedItem.getName(), marketPrice);
-                            } else {
-                                addProductToMarket(farmerEmail, marketId, selectedItem.getName(), marketPrice);
-                            }
-                        }
-                    });
-                    dialog.show(getSupportFragmentManager(), "SelectProductDialog");
-                });
-
-            } catch (IOException | JSONException e) {
-                Log.e("MarketProfileActivity", "Error fetching farmer's offered products: " + e.getMessage(), e);
-                runOnUiThread(() -> Toast.makeText(MarketProfileActivity.this, "שגיאה בטעינת המוצרים: " + e.getMessage(), Toast.LENGTH_LONG).show());
-            }
-        }).start();
-    }
-
-    private void addProductToMarket(String farmerEmail, String marketId, String itemName, double price) {
-        new Thread(() -> {
-            try {
-                String response = Service.addProductToMarketWithWillBe(farmerEmail, marketId, itemName, price);
-                Log.d("MarketProfileActivity", "Add product to market with WILL_BE response: " + response);
-
-                runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "המוצר נוסף בהצלחה לשוק!", Toast.LENGTH_SHORT).show();
-                    loadMarketProfile();
-                });
-
-            } catch (IOException | JSONException e) {
-                Log.e("MarketProfileActivity", "Error adding product to market with WILL_BE: " + e.getMessage(), e);
-                runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "שגיאה בהוספת מוצר לשוק: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
-    }
-
-    private void sendJoinRequestWithSelectedProduct(String farmerEmail, String marketId, String itemName, double price) {
-        new Thread(() -> {
-            try {
-                JSONObject productObject = new JSONObject();
-                productObject.put("name", itemName);
-                productObject.put("price", price);
-
-                JSONArray productsArray = new JSONArray();
-                productsArray.put(productObject);
-
-                String response = Service.sendJoinRequestToMarket(marketId, farmerEmail, productsArray);
-                Log.d("MarketProfileActivity", "Join request response: " + response);
-
-                runOnUiThread(() -> {
-                    if (response != null) {
-                        Toast.makeText(MarketProfileActivity.this, "הבקשה נשלחה בהצלחה! ⭐", Toast.LENGTH_LONG).show();
-                        loadMarketProfile();
-                    } else {
-                        Toast.makeText(MarketProfileActivity.this, "שגיאה בשליחת הבקשה. נסה שוב מאוחר יותר.", Toast.LENGTH_LONG).show();
-                    }
-                });
-
-            } catch (JSONException | IOException e) {
-                Log.e("MarketProfileActivity", "Error sending join request: " + e.getMessage(), e);
-                runOnUiThread(() -> {
-                    Toast.makeText(MarketProfileActivity.this, "שגיאה בהכנת הבקשה: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        }).start();
     }
 }
