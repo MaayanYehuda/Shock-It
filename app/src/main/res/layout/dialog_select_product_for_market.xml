@@ -3,37 +3,51 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:padding="16dp">
 
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="בחר מוצר:"
-        android:textSize="16sp"
-        android:textColor="@android:color/black"
-        android:layout_marginBottom="8dp"/>
-
-    <NumberPicker
-        android:id="@+id/productPicker"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="מחיר בשוק (₪):"
-        android:textSize="16sp"
-        android:textColor="@android:color/black"
-        android:layout_marginBottom="8dp"/>
-
-    <EditText
-        android:id="@+id/etMarketPrice"
+        android:id="@+id/dialogTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:inputType="numberDecimal"
-        android:hint="הכנס מחיר"
-        android:minHeight="48dp"
-        android:padding="8dp"
-        android:background="@drawable/rounded_edittext_background" /> </LinearLayout>
+        android:text="בחר מוצרים להצטרפות לשוק"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/black"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_horizontal"/>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/productsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"/>
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/buttonConfirmSelection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="אשר בחירה"
+        android:backgroundTint="#4CAF50"
+        android:textColor="@android:color/white"
+        android:padding="12dp"
+        android:textStyle="bold"/>
+
+    <Button
+        android:id="@+id/buttonCancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ביטול"
+        android:backgroundTint="#BDBDBD"
+        android:textColor="@android:color/white"
+        android:padding="12dp"
+        android:layout_marginTop="8dp"/>
+
+</LinearLayout>

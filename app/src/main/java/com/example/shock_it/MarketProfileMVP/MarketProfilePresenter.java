@@ -18,15 +18,12 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
 
     private MarketProfileContract.View view;
     private String userEmail;
-    // private String marketId; // ✅ אין צורך שיהיה כאן משתנה קלאס marketId, הוא מועבר במתודות
-    private String founderEmail; // ✅ משתנה קלאס לשמירת מייל המייסד
+    private String founderEmail;
 
     public MarketProfilePresenter(String userEmail, String marketId) {
         this.userEmail = userEmail;
-        // this.marketId = marketId; // ✅ אין צורך לאתחל כאן
     }
 
-    // ✅ מתודה לקבלת מייל המייסד (לצורך בדיקה ב-Activity)
     public String getFounderEmail() {
         return founderEmail;
     }
@@ -56,17 +53,17 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
 
                 String name = json.optString("location", location);
                 String hours = json.optString("hours", "09:00 - 14:00");
-                String founderNameFromResponse = json.optString("founderName", null); // השם של המייסד מהשרת
-                this.founderEmail = json.optString("founderEmail", null); // ✅ שמירת מייל המייסד במשתנה הקלאס
-                String currentMarketId = json.optString("id", null); // ✅ קבלת marketId מהתגובה
+                String founderNameFromResponse = json.optString("founderName", null);
+                this.founderEmail = json.optString("founderEmail", null);
+                String currentMarketId = json.optString("id", null);
+
                 if (view != null) {
                     view.setMarketId(currentMarketId);
                     Log.d("MarketIdDebug", "Presenter: Sent Market ID to View: " + currentMarketId);
                 }
 
-
-
-
+                Log.d("FounderDebug", "User Email from SharedPreferences: " + userEmail);
+                Log.d("FounderDebug", "Founder Email from Server Response: " + this.founderEmail);
 
                 JSONArray participatingFarmersArray = json.optJSONArray("participatingFarmers");
                 JSONArray invitedFarmersArray = json.optJSONArray("invitedFarmers");
@@ -131,7 +128,6 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
 
                 if (view != null) {
                     view.displayMarketProfile(name, hours);
-                    // ✅ העברת isUserFounder ישירות
                     view.updateFabState(isUserFounder, isUserParticipating, isUserInvited, isUserRequestPending);
                     view.clearFarmersList();
 
@@ -141,7 +137,6 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
                         if (farmerProductsMap.containsKey(this.founderEmail)) {
                             founderProductsJsonArray = new JSONArray(farmerProductsMap.get(this.founderEmail));
                         }
-                        // ✅ תיקון: שימוש ב-founderNameFromResponse
                         view.addFarmerCard(founderNameFromResponse, this.founderEmail, founderProductsJsonArray, true);
                         atLeastOneFarmerDisplayed = true;
                     }
@@ -236,58 +231,92 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
     }
 
     @Override
-    public void sendJoinRequest(String farmerEmail, String marketId, String itemName, double price) {
+    public void sendJoinRequest(String farmerEmail, String marketId, List<JSONObject> products) {
         if (view != null) {
-            new Thread(() -> {
-                try {
-                    JSONObject productObject = new JSONObject();
-                    productObject.put("name", itemName);
-                    productObject.put("price", price);
+            view.showLoading();
+        }
+        new Thread(() -> {
+            try {
+                JSONArray productsArray = new JSONArray(products);
 
-                    JSONArray productsArray = new JSONArray();
-                    productsArray.put(productObject);
+                String response = Service.sendJoinRequestToMarket(marketId, farmerEmail, productsArray);
+                Log.d("MarketProfilePresenter", "Join request response: " + response);
 
-                    String response = Service.sendJoinRequestToMarket(marketId, farmerEmail, productsArray);
-                    Log.d("MarketProfilePresenter", "Join request response: " + response);
-
-                    if (view != null) {
-                        if (response != null) {
-                            view.showToast("הבקשה נשלחה בהצלחה! ⭐");
-                            view.refreshMarketProfile();
-                        } else {
-                            view.showToast("שגיאה בשליחת הבקשה. נסה שוב מאוחר יותר.");
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.hideLoading();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("הבקשה נשלחה בהצלחה! ⭐");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה בשליחת הבקשה.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing join request response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת לבקשת הצטרפות.");
                         }
-                    }
-                } catch (JSONException | IOException e) {
-                    Log.e("MarketProfilePresenter", "Error sending join request: " + e.getMessage(), e);
-                    if (view != null) {
-                        view.showToast("שגיאה בהכנת הבקשה: " + e.getMessage());
+                    } else {
+                        view.showToast("תגובת שרת ריקה לבקשת הצטרפות.");
                     }
                 }
-            }).start();
-        }
+            } catch (JSONException | IOException e) {
+                Log.e("MarketProfilePresenter", "Error sending join request: " + e.getMessage(), e);
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.showToast("שגיאה בהכנת הבקשה: " + e.getMessage());
+                    view.hideLoading();
+                }
+            }
+        }).start();
     }
 
     @Override
-    public void addProductToMarket(String farmerEmail, String marketId, String itemName, double price) {
+    public void addProductToMarket(String farmerEmail, String marketId, JSONObject product) {
         if (view != null) {
-            new Thread(() -> {
-                try {
-                    String response = Service.addProductToMarketWithWillBe(farmerEmail, marketId, itemName, price);
-                    Log.d("MarketProfilePresenter", "Add product to market with WILL_BE response: " + response);
+            view.showLoading();
+        }
+        new Thread(() -> {
+            try {
+                String itemName = product.optString("name");
+                double price = product.optDouble("price", 0.0);
 
-                    if (view != null) {
-                        view.showToast("המוצר נוסף בהצלחה לשוק!");
-                        view.refreshMarketProfile();
-                    }
-                } catch (IOException | JSONException e) {
-                    Log.e("MarketProfilePresenter", "Error adding product to market with WILL_BE: " + e.getMessage(), e);
-                    if (view != null) {
-                        view.showToast("שגיאה בהוספת מוצר לשוק: " + e.getMessage());
+                String response = Service.addProductToMarketWithWillBe(farmerEmail, marketId, itemName, price);
+                Log.d("MarketProfilePresenter", "Add product to market with WILL_BE response: " + response);
+
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.hideLoading();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("המוצר נוסף בהצלחה לשוק!");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה בהוספת מוצר לשוק.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing add product response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת להוספת מוצר.");
+                        }
+                    } else {
+                        view.showToast("תגובת שרת ריקה להוספת מוצר.");
                     }
                 }
-            }).start();
-        }
+            } catch (IOException | JSONException e) {
+                Log.e("MarketProfilePresenter", "Error adding product to market with WILL_BE: " + e.getMessage(), e);
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.showToast("שגיאה בהוספת מוצר לשוק: " + e.getMessage());
+                    view.hideLoading();
+                }
+            }
+        }).start();
     }
 
     @Override
@@ -307,6 +336,7 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
                 }
 
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.hideLoading();
                     if (pendingRequests.isEmpty()) {
                         view.showToast("אין בקשות הצטרפות ממתינות לשוק זה.");
@@ -317,12 +347,14 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
             } catch (IOException e) {
                 Log.e("MarketProfilePresenter", "Network error fetching pending requests: " + e.getMessage(), e);
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.showNetworkError();
                     view.hideLoading();
                 }
             } catch (JSONException e) {
                 Log.e("MarketProfilePresenter", "JSON parsing error fetching pending requests: " + e.getMessage(), e);
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.showJsonParsingError();
                     view.hideLoading();
                 }
@@ -338,21 +370,33 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
         new Thread(() -> {
             try {
                 String response = Service.approveMarketJoinRequest(marketId, farmerEmail);
-                Log.d("MarketProfilePresenter", "Approve request response: " + response);
-
+                Log.d("ApprovalDeclineDebug", "Approve request raw response: " + response);
 
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.hideLoading();
-                    if (response != null && response.contains("success")) {
-                        view.showToast("בקשה אושרה בהצלחה!");
-                        view.refreshMarketProfile();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("בקשה אושרה בהצלחה! ⭐");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה באישור הבקשה.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing approve response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת לאישור.");
+                        }
                     } else {
-                        view.showToast("שגיאה באישור הבקשה.");
+                        view.showToast("תגובת שרת ריקה לאישור הבקשה.");
                     }
                 }
             } catch (IOException | JSONException e) {
                 Log.e("MarketProfilePresenter", "Error approving join request: " + e.getMessage(), e);
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.showToast("שגיאה באישור הבקשה: " + e.getMessage());
                     view.hideLoading();
                 }
@@ -368,20 +412,33 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
         new Thread(() -> {
             try {
                 String response = Service.declineMarketJoinRequest(marketId, farmerEmail);
-                Log.d("MarketProfilePresenter", "Decline request response: " + response);
+                Log.d("ApprovalDeclineDebug", "Decline request raw response: " + response);
 
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.hideLoading();
-                    if (response != null && response.contains("success")) {
-                        view.showToast("בקשה נדחתה בהצלחה.");
-                        view.refreshMarketProfile();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("בקשה נדחתה בהצלחה.");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה בדחיית הבקשה.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing decline response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת לדחייה.");
+                        }
                     } else {
-                        view.showToast("שגיאה בדחיית הבקשה.");
+                        view.showToast("תגובת שרת ריקה לדחיית הבקשה.");
                     }
                 }
             } catch (IOException | JSONException e) {
                 Log.e("MarketProfilePresenter", "Error declining join request: " + e.getMessage(), e);
                 if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
                     view.showToast("שגיאה בדחיית הבקשה: " + e.getMessage());
                     view.hideLoading();
                 }

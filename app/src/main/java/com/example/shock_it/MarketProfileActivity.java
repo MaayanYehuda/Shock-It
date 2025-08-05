@@ -425,17 +425,26 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
             SelectProductForMarketDialogFragment dialog =
                     SelectProductForMarketDialogFragment.newInstance(farmerProducts, itemPricesMap);
 
-            dialog.setOnProductSelectedListener((selectedItem, marketPrice) -> {
-                if (selectedItem != null) {
+            // ✅ שינוי: ה-listener כעת מקבל List<JSONObject>
+            dialog.setOnProductSelectedListener(selectedProducts -> {
+                if (selectedProducts != null && !selectedProducts.isEmpty()) {
                     if (isJoinRequest) {
-                        presenter.sendJoinRequest(userEmail, marketId, selectedItem.getName(), marketPrice);
+                        // ✅ עבור בקשת הצטרפות, שלח את כל הרשימה ל-Presenter
+                        presenter.sendJoinRequest(userEmail, marketId, selectedProducts);
                     } else {
-                        presenter.addProductToMarket(userEmail, marketId, selectedItem.getName(), marketPrice);
+                        // ✅ עבור הוספת מוצר לשוק קיים, נצטרך לולאה אם רוצים להוסיף מספר מוצרים
+                        // נניח ש-addProductToMarket ב-Presenter מטפלת במוצר בודד בכל קריאה
+                        for (JSONObject productJson : selectedProducts) {
+                            presenter.addProductToMarket(userEmail, marketId, productJson);
+                        }
                     }
+                } else {
+                    Toast.makeText(this, "לא נבחרו מוצרים.", Toast.LENGTH_SHORT).show();
                 }
             });
             dialog.show(getSupportFragmentManager(), "SelectProductDialog");
         });
+
     }
 
     @Override

@@ -25,7 +25,7 @@ import android.widget.Toast;
 import com.example.shock_it.R;
 import com.example.shock_it.MarketProfileActivity;
 
-import android.content.Intent; // וודא ייבוא של Intent
+import android.content.Intent;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -47,7 +47,7 @@ public class AddMarketFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                                      @Nullable Bundle savedInstanceState) {
+                             @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_add_market, container, false);
 
         // קודם אתחול ה־ViewModel
@@ -61,7 +61,8 @@ public class AddMarketFragment extends Fragment {
         locationInput = view.findViewById(R.id.editTextLocation);
         addMarketButton = view.findViewById(R.id.buttonAddMarket);
 
-        viewModel = new ViewModelProvider(this).get(AddMarketViewModel.class);
+        // אין צורך לאתחל את ה-ViewModel שוב כאן, הוא כבר אותחל למעלה.
+        // viewModel = new ViewModelProvider(this).get(AddMarketViewModel.class);
 
         setupDateInput();
 
@@ -192,28 +193,22 @@ public class AddMarketFragment extends Fragment {
         }
     }
 
-    // In AddMarketFragment.java
-
     private void navigateToMarketProfile(String marketId, String location, String formattedDateForIntent) {
-        // אין צורך לקרוא מ-locationInput ו-dateInput כאן!
-        // הם כבר מגיעים כפרמטרים.
-
-        // יצירת Intent כדי להפעיל את MarketProfileActivity
         Intent intent = new Intent(requireActivity(), MarketProfileActivity.class);
 
-        // העברת ה-marketId, location, ו-date כפרמטרים לאקטיביטי
         intent.putExtra("marketId", marketId);
-        intent.putExtra("location", location); // Pass the original location name
-        intent.putExtra("date", formattedDateForIntent); // Pass the formatted date (yyyy-MM-dd)
-        // הפעלת האקטיביטי
+        intent.putExtra("location", location);
+        intent.putExtra("date", formattedDateForIntent);
+
         startActivity(intent);
-        Log.d("Market Details:", marketId.trim() +" "+ location.trim() +" "+formattedDateForIntent.trim());
+
+        // ✅ השינוי הקריטי: הסרת ה-Fragment הנוכחי מה-back stack
+        // זה יגרום לכך שכאשר MarketProfileActivity יסתיים, הוא יחזור ל-Fragment שקדם ל-AddMarketFragment (כלומר, MapFragment)
+        requireActivity().getSupportFragmentManager().popBackStack();
 
         Toast.makeText(requireContext(), "נווט לפרופיל שוק " + marketId, Toast.LENGTH_SHORT).show();
     }
 
-    // Make sure convertToISODate is accessible and correctly formats to "yyyy-MM-dd"
-// Your existing convertToISODate function looks correct for this purpose.
     private void clearInputs() {
         dateInput.setText("");
         locationInput.setText("");
@@ -245,7 +240,6 @@ public class AddMarketFragment extends Fragment {
         }).start();
     }
 
-    // עדכון ה-interface
     interface CoordinatesCallback {
         void onCoordinatesReceived(double latitude, double longitude);
         void onError(String error);
