@@ -24,6 +24,7 @@ public class Service {
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
+        Log.d("Service", "Attempting GET request to: " + url.toString()); // זה הלוג החשוב!
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();
         conn.setRequestMethod("GET");
         InputStream in = new BufferedInputStream(conn.getInputStream());
@@ -227,7 +228,6 @@ public class Service {
         jsonParam.put("marketId", marketId);
         jsonParam.put("invitedEmail", invitedEmail);
         jsonParam.put("inviterEmail", inviterEmail);
-
         String response = post("markets/inviteFarmer", jsonParam.toString());
         Log.d("InviteFarmer", "Server response: " + response);
         return response;
@@ -355,5 +355,13 @@ public class Service {
         return put(path, jsonParam.toString()); // ✅ שינוי: קריאה למתודת ה-PUT החדשה
     }
 
+    // ב-services/Service.java
+    public static String getOrderedMarkets(double userLat, double userLon, String currentDate) throws IOException {
+        String path = "markets/order";
+        path += "?userLat=" + URLEncoder.encode(String.valueOf(userLat), "UTF-8");
+        path += "&userLon=" + URLEncoder.encode(String.valueOf(userLon), "UTF-8");
+        path += "&currentDate=" + URLEncoder.encode(currentDate, "UTF-8");
+        return get(path);
+    }
 
 }
