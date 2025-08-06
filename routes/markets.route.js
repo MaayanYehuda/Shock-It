@@ -23,6 +23,96 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET - שליפת שווקים ממוינים לפי תאריך וקרבה
+// GET - שליפת שווקים ממוינים לפי תאריך וקרבה
+router.get("/order", async (req, res) => {
+  const { userLat, userLon, currentDate } = req.query;
+  console.log("Incoming request to /markets/order with params:", {
+    userLat,
+    userLon,
+    currentDate,
+  });
+
+  let session;
+  try {
+    session = driver.session();
+
+    let queryParts = [`MATCH (m:Market)`];
+    let params = {};
+    let orderByClauses = [];
+    let returnItems = [`m`];
+
+    if (currentDate) {
+      queryParts.push(`WHERE m.date >= $currentDate`);
+      params.currentDate = currentDate;
+      orderByClauses.push(`m.date ASC`);
+    }
+
+    if (userLat && userLon) {
+      // Step 1: Define marketPoint and userPoint
+      queryParts.push(`
+        WITH m,
+             point({latitude: toFloat(m.latitude), longitude: toFloat(m.longitude)}) AS marketPoint,
+             point({latitude: toFloat($userLat), longitude: toFloat($userLon)}) AS userPoint
+      `);
+      // Step 2: Calculate distance in a new WITH clause, using variables from the previous WITH
+      queryParts.push(`
+        WITH m, marketPoint, userPoint, point.distance(userPoint, marketPoint) AS distance
+      `);
+      returnItems.push(`distance`); // Add distance to return
+      orderByClauses.push(`distance ASC`); // Add distance to order by
+      params.userLat = userLat;
+      params.userLon = userLon;
+    }
+
+    // Join all query parts
+    let finalQuery = queryParts.join(` `);
+
+    // Add ORDER BY clause if present
+    if (orderByClauses.length > 0) {
+      finalQuery += ` ORDER BY ` + orderByClauses.join(", ");
+    }
+
+    // Add RETURN clause
+    finalQuery += ` RETURN ` + returnItems.join(", ");
+
+    console.log("Cypher Query:", finalQuery);
+    console.log("Cypher Params:", params);
+
+    const result = await session.run(finalQuery, params);
+    const markets = result.records.map((record) => {
+      const marketProps = record.get("m").properties;
+      // The 'distance' property will now always be available if userLat and userLon were provided
+      // because it's explicitly returned.
+      const distance = record.has("distance") ? record.get("distance") : null;
+      // Ensure only the requested properties are returned for the Market object
+      return {
+        id: marketProps.id,
+        date: marketProps.date,
+        latitude: marketProps.latitude,
+        location: marketProps.location,
+        longitude: marketProps.longitude,
+        distance: distance, // Include distance as a separate calculated field
+      };
+    });
+    console.log("Fetched markets (before sending to client):", markets); // ✅ לוג חדש
+    res.json(markets);
+  } catch (error) {
+    console.error("Error fetching markets:", error);
+    // ✅ לוג מפורט יותר לשגיאות
+    res.status(500).json({
+      success: false,
+      message: "Error fetching markets.",
+      details: error.message,
+      stack: error.stack,
+    });
+  } finally {
+    if (session) {
+      session.close();
+    }
+  }
+});
+
 // POST - הוספת שוק חדש (עם ID ייחודי והחזרת ID)
 router.post("/addMarket", async (req, res) => {
   console.log("=== POST /addMarket ===");
