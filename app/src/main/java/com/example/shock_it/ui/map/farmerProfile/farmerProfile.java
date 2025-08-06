@@ -243,42 +243,36 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
 
         if (markets != null && !markets.isEmpty()) {
             for (FarmerMarket fm : markets) {
-                TextView marketTextView = new TextView(requireContext());
-                // Accessing Market details through FarmerMarket
-                String marketInfo = "• " + fm.getMarket().getLocation();
-                if (fm.getMarket().getDate() != null) {
-                    // Ensure date formatting is consistent with how MarketProfileActivity expects it
-                    marketInfo += " (" + fm.getMarket().getDate().toString() + ")"; // Format date as needed
-                }
-                marketTextView.setText(marketInfo);
-                marketTextView.setTextSize(16);
-                marketTextView.setPadding(0, 4, 0, 4);
+                // 1. Inflate the market card layout
+                //    We are "inflating" the XML file into a View object
+                View marketCardView = getLayoutInflater().inflate(R.layout.market_card_item, marketsLayout, false);
 
-                // --- NEW: Make the TextView clickable and add OnClickListener ---
-                marketTextView.setClickable(true);
-                marketTextView.setFocusable(true);
-                // Optional: Add a ripple effect for better user feedback
-                // marketTextView.setBackgroundResource(android.R.drawable.selectable_item_background);
+                // 2. Find the TextViews inside the inflated card layout
+                TextView marketNameTextView = marketCardView.findViewById(R.id.marketName);
+                TextView marketDateTextView = marketCardView.findViewById(R.id.marketDate);
 
-                // Get final variables for use in lambda
-                final String marketLocation = fm.getMarket().getLocation();
-                final String marketDate = fm.getMarket().getDate().toString(); // Ensure this is the correct string format
+                // 3. Set the data for each TextView
+                String marketLocation = fm.getMarket().getLocation();
+                String marketDate = fm.getMarket().getDate().toString();
 
-                marketTextView.setOnClickListener(v -> {
-                    Log.d("FarmerProfile", "Clicked on market: " + marketLocation + ", " + marketDate);
-                    // Call a method to navigate to the MarketProfileActivity
+                marketNameTextView.setText(marketLocation);
+                marketDateTextView.setText(marketDate);
+
+                // 4. Set an OnClickListener on the entire card View
+                marketCardView.setOnClickListener(v -> {
+                    Log.d("FarmerProfile", "Clicked on market card: " + marketLocation + ", " + marketDate);
                     navigateToMarketProfile(marketLocation, marketDate);
                 });
-                // --- END NEW ---
 
-                marketsLayout.addView(marketTextView);
+                // 5. Add the fully configured card View to the LinearLayout
+                marketsLayout.addView(marketCardView);
             }
         } else {
             TextView noMarkets = new TextView(requireContext());
             noMarkets.setText("לא צוינו שווקים קשורים");
             noMarkets.setTextSize(16);
             noMarkets.setPadding(0, 4, 0, 4);
-            noMarkets.setTextColor(getResources().getColor(android.R.color.darker_gray)); // Added for consistency
+            noMarkets.setTextColor(getResources().getColor(android.R.color.darker_gray));
             marketsLayout.addView(noMarkets);
         }
     }

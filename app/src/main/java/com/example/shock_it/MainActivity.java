@@ -37,10 +37,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap; // For linking markers to Market objects
 import java.util.List;
+import java.util.Locale;
 
 import classes.Market; // Ensure this import is correct
 import services.Service;
@@ -51,6 +54,9 @@ public class MainActivity extends AppCompatActivity implements
         GoogleMap.OnMarkerClickListener { // For clicks on map markers
 
     private GoogleMap mGoogleMap;
+
+    private double lat;
+    private double lot;
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1001;
     private RecyclerView recyclerView;
@@ -101,6 +107,7 @@ public class MainActivity extends AppCompatActivity implements
         bottomSheetBehavior.setHideable(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
+        // The BottomSheetCallback and its switch-case statement have been removed.
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map_container); // Assuming a container ID in XML
         if (mapFragment == null) {
@@ -165,6 +172,8 @@ public class MainActivity extends AppCompatActivity implements
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
                             LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                            lat= currentLocation.latitude;
+                            lot = currentLocation.longitude;
                             mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
                         } else {
                             LatLng defaultLocation = new LatLng(32.0853, 34.7818); // Tel Aviv
@@ -177,7 +186,8 @@ public class MainActivity extends AppCompatActivity implements
     private void loadMarkets() {
         new Thread(() -> {
             try {
-                String response = Service.getMarkets();
+                String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                String response = Service.getOrderedMarkets(lat, lot, currentDate);
                 JSONArray jsonArray = new JSONArray(response);
                 List<Market> markets = new ArrayList<>();
                 for (int i = 0; i < jsonArray.length(); i++) {

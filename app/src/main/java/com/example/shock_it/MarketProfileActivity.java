@@ -280,6 +280,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     // ✅ שינוי: קבלת isUserFounder ישירות מה-Presenter
     @Override
     public void updateFabState(boolean isUserFounder, boolean isParticipating, boolean isInvited, boolean isRequestPending) {
+        if(userEmail!=null){
         runOnUiThread(() -> {
             int activeColor = Color.parseColor("#42A5F5");
             int disabledColor = Color.parseColor("#BDBDBD");
@@ -287,6 +288,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
             // ✅ ודא ש-marketId של ה-Activity מעודכן.
             // הוא אמור להגיע מה-Intent ב-processIntentAndLoadMarket.
             // אם הוא עדיין null/ריק, זה מצביע על בעיה באופן שבו ה-Activity נפתח.
+
             if (this.marketId == null || this.marketId.isEmpty()) {
                 Log.e("MarketProfileActivity", "marketId is null or empty in updateFabState. Cannot determine button visibility.");
                 fabAddProduct.setVisibility(View.GONE);
@@ -352,6 +354,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 Log.d("ButtonVisibility", "FAB set to SEND JOIN REQUEST (User is not involved).");
             }
         });
+        }
     }
 
     @Override

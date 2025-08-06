@@ -160,8 +160,9 @@ public class MapFragment extends Fragment implements
         // הגדרת ה-BottomSheet
         View bottomSheet = rootView.findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        bottomSheetBehavior.setPeekHeight(120);
-        bottomSheetBehavior.setHideable(false);
+        bottomSheetBehavior.setDraggable(true);
+        bottomSheetBehavior.setPeekHeight(180); // גובה ההצצה במצב מכווץ
+        bottomSheetBehavior.setHideable(false); // אפשר לשנות את זה ל-true אם רוצים לאפשר הסתרה
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
         // כפתור הזמנות
@@ -315,25 +316,51 @@ public class MapFragment extends Fragment implements
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // סגור את הרשימה לאחר לחיצה
         }
     }
+    // משתנה לשמירת הסמן האחרון שנלחץ, כדי שנוכל לשנות אותו בחזרה
+    private Marker lastClickedMarker = null;
+
+    // במקום לשנות גוון, נשתמש בשני קבצי אייקון - רגיל ומוגדל.
+// ודא שהוספת את market_selected.png לתיקיית drawable.
+    private int normalMarketIcon = R.drawable.market;
+    private int selectedMarketIcon = R.drawable.ic_selected_market;
 
     @SuppressLint("NewApi")
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        Market market = markerMarketMap.get(marker); // שלוף Market אובייקט ישירות
+        Market market = markerMarketMap.get(marker);
         if (market != null) {
             Log.d("MapFragment", "Marker clicked: " + market.getLocation());
+
+            // 1. החזרת האייקון של הסמן הקודם למצבו הרגיל
+            if (lastClickedMarker != null && !lastClickedMarker.equals(marker)) {
+                lastClickedMarker.setIcon(BitmapDescriptorFactory.fromResource(normalMarketIcon));
+            }
+
+            // 2. שינוי האייקון של הסמן הנוכחי לאייקון המוגדל
+            marker.setIcon(BitmapDescriptorFactory.fromResource(selectedMarketIcon));
+            lastClickedMarker = marker; // עדכון הסמן האחרון שנלחץ
+
+            // 3. אנימציית מצלמה חלקה למיקום הסמן
+            LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
+            mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
+
+            // סגירת ה-BottomSheet כפי שהיה
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+
+            // 4. מעבר לפעילות (Activity) הבאה
             Intent intent = new Intent(requireContext(), MarketProfileActivity.class);
             intent.putExtra("location", market.getLocation());
-            // Market.getDate() מחזיר LocalDate, המר ל-String
             if (market.getDate() != null) {
-                intent.putExtra("date", market.getDate().toString()); // המר ל-String
+                intent.putExtra("date", market.getDate().toString());
             } else {
                 intent.putExtra("date", "Unknown Date");
             }
             startActivity(intent);
+
+            return true;
         } else {
             Log.w("MapFragment", "Market object not found for clicked marker.");
+            return false;
         }
-        return true;
     }
 }

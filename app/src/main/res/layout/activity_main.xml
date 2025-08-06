@@ -1,5 +1,5 @@
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main_layout"
@@ -7,61 +7,57 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Top Button -->
-
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/farmerButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:contentDescription="אני חקלאי"
-            android:src="@drawable/ic_farmer"
-            app:backgroundTint="#9DC183"
-            app:layout_anchorGravity="bottom|start"
-            app:elevation="6dp"
-            />
-
-
-    <LinearLayout
+    <FrameLayout
+        android:id="@+id/map_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:layout_height="match_parent" />
 
-        <FrameLayout
-            android:id="@+id/map_container"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-    </LinearLayout>
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/farmerButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:contentDescription="אני חקלאי"
+        android:src="@drawable/ic_farmer"
+        app:backgroundTint="#81C784"
+        app:elevation="6dp" />
 
-    <!-- BottomSheet -->
     <LinearLayout
         android:id="@+id/bottom_sheet"
         android:layout_width="match_parent"
-        android:layout_height="347dp"
-        android:background="#9DC183"
-        android:elevation="16dp"
+        android:layout_height="540dp"
         android:orientation="vertical"
-        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+        android:background="@drawable/bottom_sheet_background"
+        android:elevation="8dp"
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+        app:behavior_peekHeight="200dp">
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="5dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/list_view_background" />
 
         <TextView
-            android:layout_width="251dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
             android:padding="16dp"
-            android:text="שווקים קרובים:"
+            android:text="שווקים קרובים"
             android:textColor="#333333"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/marketsView"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="wrap_content"
             android:clipToPadding="false"
-            android:scrollbars="vertical" />
+            android:layout_marginBottom="16dp"
+            android:paddingHorizontal="16dp"
+            android:scrollbars="none" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

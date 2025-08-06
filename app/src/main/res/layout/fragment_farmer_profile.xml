@@ -1,143 +1,199 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5"
+    android:background="#F0F2F5"
     android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:layoutDirection="rtl">
+        android:orientation="vertical">
 
-        <RelativeLayout
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp">
+            android:minHeight="150dp"
+            android:background="@drawable/farmer_profile_bg">
 
-            <TextView
-                android:id="@+id/farmerTitle"
-                android:layout_width="wrap_content"
+            <RelativeLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentStart="true"
-                android:text="פרופיל החקלאי"
-                android:textColor="#9DC183"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:padding="24dp"
+                android:layout_gravity="bottom"
+                android:background="#80000000">
+
+                <TextView
+                    android:id="@+id/farmerTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:text="פרופיל חקלאי"
+                    android:textColor="#FFFFFF"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/farmerName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/farmerTitle"
+                    android:layout_marginTop="8dp"
+                    android:text="יוסי לוי"
+                    android:textColor="#FFFFFF"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </RelativeLayout>
 
             <Button
                 android:id="@+id/editProfileButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:text="ערוך פרופיל"
+                android:layout_gravity="top|end"
+                android:layout_margin="16dp"
+                android:text="ערוך"
                 android:backgroundTint="#FFC107"
                 android:textColor="#FFFFFF"
-                android:padding="10dp"
+                android:textSize="14sp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                app:cornerRadius="8dp"
                 android:visibility="gone" />
-        </RelativeLayout>
 
-        <TextView
-            android:id="@+id/farmerNameLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="שם:"
-            android:textStyle="bold"
-            android:paddingTop="16dp"
-            android:textSize="16sp"
-            android:textColor="#000000" />
-
-        <TextView
-            android:id="@+id/farmerName"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="יוסי לוי"
-            android:textSize="16sp"
-            android:textColor="#444444" />
-
-        <TextView
-            android:id="@+id/farmerEmailLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="אימייל:"
-            android:textStyle="bold"
-            android:paddingTop="16dp"
-            android:textSize="16sp"
-            android:textColor="#000000" />
-
-        <TextView
-            android:id="@+id/farmerEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="yossi@example.com"
-            android:textSize="16sp"
-            android:textColor="#444444" />
-
-        <TextView
-            android:id="@+id/farmerAddressLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="כתובת:"
-            android:textStyle="bold"
-            android:paddingTop="16dp"
-            android:textSize="16sp"
-            android:textColor="#000000" />
-
-        <TextView
-            android:id="@+id/farmerAddress"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="לא צוינה"
-            android:textSize="16sp"
-            android:textColor="#444444" />
-
-
-        <TextView
-            android:id="@+id/productsLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="מוצרים:"
-            android:textStyle="bold"
-            android:paddingTop="24dp"
-            android:textSize="16sp"
-            android:textColor="#000000" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/farmerProductsRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false"
-            android:layout_marginBottom="16dp" />
-
-        <Button
-            android:id="@+id/addProductButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="➕ הוסף מוצר"
-            android:layout_marginTop="16dp"
-            android:backgroundTint="#9DC183"
-            android:textColor="#FFFFFF"
-            android:padding="10dp" />
-
-        <TextView
-            android:id="@+id/marketsLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="שווקים בהם הוא משתתף:"
-            android:textStyle="bold"
-            android:paddingTop="24dp"
-            android:textSize="16sp"
-            android:textColor="#000000" />
+        </FrameLayout>
 
         <LinearLayout
-            android:id="@+id/farmerMarketsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp" />
+            android:padding="16dp">
 
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@android:color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/en"
+                            app:tint="#9DC183"
+                            android:contentDescription="אייקון אימייל" />
+                        <TextView
+                            android:id="@+id/farmerEmail"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="yossi@example.com"
+                            android:textSize="16sp"
+                            android:textColor="#666666" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_location"
+                            app:tint="#9DC183"
+                            android:contentDescription="אייקון מיקום" />
+                        <TextView
+                            android:id="@+id/farmerAddress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="לא צוינה"
+                            android:textSize="16sp"
+                            android:textColor="#666666" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@android:color/white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/productsLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="מוצרים"
+                        android:textColor="#333333"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/farmerProductsRecyclerView"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:nestedScrollingEnabled="false" />
+
+                    <Button
+                        android:id="@+id/addProductButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="#9DC183"
+                        android:text="➕ הוסף מוצר"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="12dp"
+                        app:cornerRadius="8dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <TextView
+                android:id="@+id/marketsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="שווקים"
+                android:textColor="#333333"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp" />
+
+            <LinearLayout
+                android:id="@+id/farmerMarketsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp" />
+
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
