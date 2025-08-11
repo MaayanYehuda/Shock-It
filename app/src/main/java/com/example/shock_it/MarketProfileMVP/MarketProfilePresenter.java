@@ -445,4 +445,89 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
             }
         }).start();
     }
-}
+
+
+    public void handleInvitationDecline(String farmerEmail, String marketId) {
+        if (view != null) {
+            view.showLoading();
+        }
+        new Thread(() -> {
+            try {
+                String response = Service.declineInvitation(farmerEmail, marketId);
+                Log.d("ApprovalDeclineDebug", "Decline request raw response: " + response);
+
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.hideLoading();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("בקשה נדחתה בהצלחה.");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה בדחיית הבקשה.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing decline response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת לדחייה.");
+                        }
+                    } else {
+                        view.showToast("תגובת שרת ריקה לדחיית הבקשה.");
+                    }
+                }
+            } catch (IOException | JSONException e) {
+                Log.e("MarketProfilePresenter", "Error declining join request: " + e.getMessage(), e);
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.showToast("שגיאה בדחיית הבקשה: " + e.getMessage());
+                    view.hideLoading();
+                }
+            }
+        }).start();
+    }
+
+
+    public void handleInvitationAcceptance(String farmerEmail, String marketId) {
+        if (view != null) {
+            view.showLoading();
+        }
+        new Thread(() -> {
+            try {
+                String response = Service.acceptInvitation(farmerEmail, marketId);
+                Log.d("ApprovalDeclineDebug", "Decline request raw response: " + response);
+
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.hideLoading();
+                    if (response != null) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            if (jsonResponse.optBoolean("success", false)) {
+                                view.showToast("השתתפות אושרה בהצלחה.");
+                                view.refreshMarketProfile();
+                            } else {
+                                String errorMessage = jsonResponse.optString("message", "שגיאה באישור הבקשה.");
+                                view.showToast(errorMessage);
+                            }
+                        } catch (JSONException e) {
+                            Log.e("ApprovalDeclineDebug", "Error parsing decline response JSON: " + e.getMessage());
+                            view.showToast("שגיאה בפורמט תגובת השרת לדחייה.");
+                        }
+                    } else {
+                        view.showToast("תגובת שרת ריקה לדחיית הבקשה.");
+                    }
+                }
+            } catch (IOException | JSONException e) {
+                Log.e("MarketProfilePresenter", "Error declining join request: " + e.getMessage(), e);
+                if (view != null) {
+                    // ✅ הסרנו runOnUiThread מכאן
+                    view.showToast("שגיאה בדחיית הבקשה: " + e.getMessage());
+                    view.hideLoading();
+                }
+            }
+        }).start();
+    }
+
+    }

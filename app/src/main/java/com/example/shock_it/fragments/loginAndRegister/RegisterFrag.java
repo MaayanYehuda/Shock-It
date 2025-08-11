@@ -18,6 +18,7 @@ import classes.Farmer;
 import services.Service;
 
 public class RegisterFrag extends Fragment {
+
     private View rootView;
     @Nullable
     @Override
@@ -44,11 +45,45 @@ public class RegisterFrag extends Fragment {
         String phone = phoneInput.getText().toString().trim();
         String address = addressInput.getText().toString().trim();
 
-        if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(getContext(), "אנא מלא את כל השדות", Toast.LENGTH_SHORT).show();
+        // ולידציה שם מלא
+        if (name.isEmpty() || name.length() < 2 || !name.matches("^[\\p{L} .'-]+$")) {
+            Toast.makeText(getContext(), "שם מלא חייב להכיל לפחות 2 אותיות וללא מספרים", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        // ולידציה אימייל
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            Toast.makeText(getContext(), "כתובת אימייל לא תקינה", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // ולידציה סיסמה
+        String passwordPattern =
+                "^(?=.*[0-9])" +"(?=.*[a-z])" +
+                        "(?=.*[A-Z])" +
+                        "(?=.*[!@#$%^&+=])" +
+                        "(?=\\S+$).{8,}$";
+
+        if (!password.matches(passwordPattern)) {
+            Toast.makeText(getContext(),
+                    "הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר ותו מיוחד",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // ולידציה מספר טלפון
+        if (!phone.matches("^05\\d{8}$")) { // 10 ספרות שמתחילות ב-05
+            Toast.makeText(getContext(), "מספר טלפון לא תקין", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // ולידציה כתובת
+        if (address.isEmpty() || address.length() < 5) {
+            Toast.makeText(getContext(), "אנא הזן כתובת תקינה", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // אם הכל תקין, צור את האובייקט והמשך לרישום
         Farmer farmer = new Farmer(name, email, password, phone, address);
 
         new Thread(() -> {
@@ -63,7 +98,10 @@ public class RegisterFrag extends Fragment {
 
                 requireActivity().runOnUiThread(() -> {
                     Toast.makeText(getContext(), "נרשמת בהצלחה!", Toast.LENGTH_SHORT).show();
-                    // ניקוי שדות או מעבר למסך אחר
+                    requireActivity().getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.fragmentContainer, new LoginFrag())
+                            .commit();
                 });
             } catch (Exception e) {
                 requireActivity().runOnUiThread(() -> {

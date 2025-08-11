@@ -54,7 +54,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     ImageView marketImage;
     TextView marketName, marketLocation, marketHours, marketDate;
     LinearLayout farmersListContainer;
-    FloatingActionButton fabAddProduct;
+    FloatingActionButton   fabAddProduct, fabAcceptInvite, fabDeclineInvite;
     private View marketProfileContentScrollView;
 
     // נתוני שוק ומשתמש
@@ -84,6 +84,8 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         manageMarketButton = findViewById(R.id.manageMarketButton);
         viewRequestsButton = findViewById(R.id.viewRequestsButton);
         fabAddProduct = findViewById(R.id.fab_add_product);
+        fabAcceptInvite = findViewById(R.id.fab_accept_invite);
+        fabDeclineInvite = findViewById(R.id.fab_decline_invite);
 
         // קבלת מייל המשתמש מה-SharedPreferences
         SharedPreferences prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
@@ -337,13 +339,30 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 fabAddProduct.setOnClickListener(null); // אין פעולה בלחיצה
                 Log.d("ButtonVisibility", "FAB set to PENDING REQUEST (User has pending request).");
             } else if (isInvited) {
-                // אם המשתמש הוזמן (אבל עוד לא אישר)
-                fabAddProduct.setVisibility(View.VISIBLE);
-                fabAddProduct.setEnabled(true);
-                fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
-                fabAddProduct.setImageResource(R.drawable.ic_done); // אייקון של אישור
-                // fabAddProduct.setOnClickListener(v -> presenter.handleInvitationAcceptance(userEmail, marketId)); // יש לממש
-                Log.d("ButtonVisibility", "FAB set to ACCEPT INVITE (User is Invited).");
+                // מסתיר את הכפתור הכתום הרגיל
+                fabAddProduct.setVisibility(View.GONE);
+
+                // מציג את שני כפתורי ההזמנה
+                fabAcceptInvite.setVisibility(View.VISIBLE);
+                fabDeclineInvite.setVisibility(View.VISIBLE);
+
+                // מאזין לאישור
+                fabAcceptInvite.setOnClickListener(v -> {
+                    presenter.handleInvitationAcceptance(userEmail, marketId);
+                    fabAcceptInvite.setVisibility(View.GONE);
+                    fabDeclineInvite.setVisibility(View.GONE);
+                    fabAddProduct.setVisibility(View.VISIBLE);
+                });
+
+                // מאזין לדחייה
+                fabDeclineInvite.setOnClickListener(v -> {
+                    presenter.handleInvitationDecline(userEmail, marketId);
+                    fabAcceptInvite.setVisibility(View.GONE);
+                    fabDeclineInvite.setVisibility(View.GONE);
+                    fabAddProduct.setVisibility(View.VISIBLE);
+                });
+
+                Log.d("ButtonVisibility", "Showing INVITE ACCEPT/DECLINE FABs");
             } else {
                 // אם המשתמש לא מייסד, לא משתתף, לא הוזמן ולא שלח בקשה
                 fabAddProduct.setVisibility(View.VISIBLE); // או GONE אם לא רוצים להציג כלל

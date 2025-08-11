@@ -37,11 +37,12 @@ public interface MarketProfileContract {
         // ✅ שינוי: sendJoinRequest מקבל רשימה של JSONObject עבור מוצרים
         void sendJoinRequest(String farmerEmail, String marketId, List<JSONObject> products);
 
-        // ✅ שינוי: addProductToMarket מקבל JSONObject בודד עבור מוצר
         void addProductToMarket(String farmerEmail, String marketId, JSONObject product);
 
         void fetchPendingRequests(String marketId);
         void approveJoinRequest(String marketId, String farmerEmail);
         void declineJoinRequest(String marketId, String farmerEmail);
+       void handleInvitationAcceptance(String farmerEmail, String marketId);
+        void handleInvitationDecline(String farmerEmail,String marketId);
     }
 }

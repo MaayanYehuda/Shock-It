@@ -167,4 +167,28 @@
         app:tint="@android:color/white"
         app:srcCompat="@android:drawable/ic_input_add" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_accept_invite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="16dp"
+        android:layout_marginEnd="88dp"
+        android:backgroundTint="#4CAF50"
+        android:visibility="gone"
+        app:tint="@android:color/white"
+        app:srcCompat="@drawable/ic_undone" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_decline_invite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:backgroundTint="#F44336"
+        android:visibility="gone"
+        app:tint="@android:color/white"
+        app:srcCompat="@drawable/ic_done" />
+
+
 </FrameLayout>
