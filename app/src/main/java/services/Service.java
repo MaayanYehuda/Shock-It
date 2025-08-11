@@ -138,8 +138,6 @@ public class Service {
                     jsonString.append(line);
                 }
             }
-            // אתה יכול גם לזרוק IOException כאן אם תרצה לטפל בשגיאות HTTP ספציפיות
-            // throw new IOException("Server returned HTTP " + responseCode + ": " + jsonString.toString());
         }
         conn.disconnect();
         return jsonString.toString();

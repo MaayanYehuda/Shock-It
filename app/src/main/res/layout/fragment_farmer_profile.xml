@@ -16,7 +16,6 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="150dp"
             android:background="@drawable/farmer_profile_bg">
 
             <RelativeLayout
@@ -61,7 +60,8 @@
                 android:paddingStart="16dp"
                 android:paddingEnd="16dp"
                 app:cornerRadius="8dp"
-                android:visibility="gone" />
+                android:visibility="gone"
+                 />
 
         </FrameLayout>
 

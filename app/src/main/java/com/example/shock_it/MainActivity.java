@@ -172,8 +172,8 @@ public class MainActivity extends AppCompatActivity implements
                     .addOnSuccessListener(this, location -> {
                         if (location != null) {
                             LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
-                            lat= currentLocation.latitude;
-                            lot = currentLocation.longitude;
+                            lat= location.getLatitude();
+                            lot= location.getLongitude();
                             mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLocation, 15));
                         } else {
                             LatLng defaultLocation = new LatLng(32.0853, 34.7818); // Tel Aviv
