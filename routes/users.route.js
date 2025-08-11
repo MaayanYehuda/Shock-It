@@ -1,11 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const neo4j = require("neo4j-driver");
+const bcrypt = require("bcrypt");
 // התחברות ל-NEO4J
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  neo4j.auth.basic("neo4j", "loolrov17")
-  // neo4j.auth.basic("neo4j", "315833301")
+  // neo4j.auth.basic("neo4j", "loolrov17")
+   neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
@@ -31,8 +32,8 @@ router.get("/login", async (req, res) => {
 
   try {
     const result = await session.run(
-      "MATCH (u:Person {email: $email, password: $password}) RETURN u",
-      { email, password }
+      "MATCH (u:Person {email: $email}) RETURN u",
+      { email }
     );
 
     if (result.records.length === 0) {
@@ -40,6 +41,13 @@ router.get("/login", async (req, res) => {
     }
 
     const user = result.records[0].get("u").properties;
+
+    // השוואה בין הסיסמה שנשלחה ל-Hash שב-DB
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+
     res.status(200).json(user);
   } catch (error) {
     console.error("Login error:", error);
@@ -50,21 +58,24 @@ router.get("/login", async (req, res) => {
 // דוגמה: הוספת משתמש חדש
 router.post("/register", async (req, res) => {
   const { email, name, phone, password, address } = req.body;
+
   try {
-    // בדיקה אם קיים משתמש עם אותו אימייל
+    // בדיקה אם המשתמש כבר קיים
     const checkResult = await session.run(
       "MATCH (u:Person {email: $email}) RETURN u",
       { email }
     );
-
     if (checkResult.records.length > 0) {
-      return res.status(409).json({ message: "Email already exists" }); // Conflict
+      return res.status(409).json({ message: "Email already exists" });
     }
 
-    // יצירת משתמש חדש
+    // יצירת hash לסיסמה
+    const hashedPassword = await bcrypt.hash(password, 10); // 10 = salt rounds
+
+    // שמירה ב-DB עם הסיסמה המוצפנת
     const result = await session.run(
       "CREATE (u:Person {email: $email, name: $name, phone: $phone, password: $password, address: $address}) RETURN u",
-      { email, name, phone, password, address }
+      { email, name, phone, password: hashedPassword, address }
     );
 
     const user = result.records[0].get("u").properties;
