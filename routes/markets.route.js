@@ -117,7 +117,6 @@ router.get("/order", async (req, res) => {
 router.post("/addMarket", async (req, res) => {
   console.log("=== POST /addMarket ===");
   console.log("Request body:", req.body);
-
   const { date, latitude, location, longitude, farmerEmail } = req.body;
 
   if (
@@ -290,21 +289,21 @@ router.get("/profile", async (req, res) => {
 });
 
 // זה ה-endpoint עבור רשימת כל השווקים/תאריכים
-router.get("/locations-dates", async (req, res) => {
-  try {
-    const result = await session.run(
-      "MATCH (m:Market) RETURN m.location AS location, m.date AS date"
-    );
-    const markets = result.records.map((record) => ({
-      location: record.get("location"),
-      date: record.get("date"),
-    }));
-    res.json(markets); // <--- מחזיר מערך
-  } catch (error) {
-    console.error("Error fetching market locations and dates:", error);
-    res.status(500).send("Error fetching market data");
-  }
-});
+// router.get("/locations-dates", async (req, res) => {
+//   try {
+//     const result = await session.run(
+//       "MATCH (m:Market) RETURN m.location AS location, m.date AS date"
+//     );
+//     const markets = result.records.map((record) => ({
+//       location: record.get("location"),
+//       date: record.get("date"),
+//     }));
+//     res.json(markets); // <--- מחזיר מערך
+//   } catch (error) {
+//     console.error("Error fetching market locations and dates:", error);
+//     res.status(500).send("Error fetching market data");
+//   }
+// });
 
 // POST - הזמנת חקלאי לשוק (כעת מקבל marketId)
 router.post("/inviteFarmer", async (req, res) => {
