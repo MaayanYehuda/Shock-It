@@ -25,7 +25,7 @@ import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.shock_it.InvitationsActivity;
+import com.example.shock_it.NotificationsActivity;
 import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
 import com.example.shock_it.ui.map.MarketAdapter;
@@ -170,7 +170,7 @@ public class MapFragment extends Fragment implements
         if (invitesButton != null) {
             invitesButton.setOnClickListener(v -> {
                 Log.d("MapFragment", "Navigating to Invitations Activity...");
-                Intent intent = new Intent(requireContext(), InvitationsActivity.class);
+                Intent intent = new Intent(requireContext(), NotificationsActivity.class);
                 startActivity(intent);
             });
         } else {

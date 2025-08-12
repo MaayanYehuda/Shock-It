@@ -23,7 +23,7 @@
             android:textColor="#212121"
             android:textSize="22sp"
             android:textStyle="bold"
-            tools:text="שוק אורגני בכיכר העיר" />
+            tools:text="שם השוק המומלץ" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -46,7 +46,7 @@
                 android:layout_marginStart="8dp"
                 android:textColor="#757575"
                 android:textSize="16sp"
-                tools:text="רחוב הראשי 15, תל אביב" />
+                tools:text="מיקום השוק" />
         </LinearLayout>
 
         <LinearLayout
@@ -69,7 +69,7 @@
                 android:layout_marginStart="8dp"
                 android:textColor="#757575"
                 android:textSize="16sp"
-                tools:text="יום שבת, 20 ביולי 2024" />
+                tools:text="תאריך השוק" />
         </LinearLayout>
 
         <!-- כפתורי פעולה מעוצבים -->
@@ -81,22 +81,22 @@
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/declineButton"
+                android:id="@+id/viewProfileButton"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
-                android:text="דחה"
-                android:textColor="#F44336"
-                app:strokeColor="#F44336"
+                android:text="צפה בפרופיל"
+                android:textColor="#66BB6A"
+                app:strokeColor="#66BB6A"
                 app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/acceptButton"
+                android:id="@+id/requestButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:backgroundTint="#4CAF50"
-                android:text="אשר"
+                android:text="שלח בקשה"
                 android:textColor="@android:color/white"
                 app:cornerRadius="12dp" />
         </LinearLayout>

@@ -20,7 +20,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.0.107:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -151,13 +151,32 @@ public class Service {
     }
 
 
-    public static String register(String name, String email, String password, String phone, String address) throws IOException, JSONException {
+    public static String register(
+            String name,
+            String email,
+            String password,
+            String phone,
+            String address,
+            Double latitude,
+            Double longitude,
+            Integer notificationRadius) throws IOException, JSONException {
+
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("name", name);
         jsonParam.put("email", email);
         jsonParam.put("password", password);
         jsonParam.put("phone", phone);
         jsonParam.put("address", address);
+
+        if (latitude != null) {
+            jsonParam.put("latitude", latitude);
+        }
+        if (longitude != null) {
+            jsonParam.put("longitude", longitude);
+        }
+        if (notificationRadius != null) {
+            jsonParam.put("notificationRadius", notificationRadius);
+        }
 
         return post("users/register", jsonParam.toString());
     }
@@ -284,12 +303,16 @@ public class Service {
         return post(path, jsonBody.toString());
     }
 
-    public static String editProfile(String email, String name, String phone, String address) throws IOException, JSONException {
+    public static String editProfile(String email, String name, String phone, String address, double longitude, double latitude, double notificationRadius) throws IOException, JSONException {
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("email", email);
         jsonParam.put("name", name);
         jsonParam.put("phone", phone);
         jsonParam.put("address", address);
+        // 🆕 חדש: הוספת הקואורדינטות והרדיוס ל-JSON
+        jsonParam.put("longitude", longitude);
+        jsonParam.put("latitude", latitude);
+        jsonParam.put("notificationRadius", notificationRadius);
         String response = put("users/update", jsonParam.toString());
         Log.d("Service", "editProfile server response: " + response);
         return response;
@@ -359,6 +382,11 @@ public class Service {
         path += "?userLat=" + URLEncoder.encode(String.valueOf(userLat), "UTF-8");
         path += "&userLon=" + URLEncoder.encode(String.valueOf(userLon), "UTF-8");
         path += "&currentDate=" + URLEncoder.encode(currentDate, "UTF-8");
+        return get(path);
+    }
+
+    public static String getRecomendedMarketsByYourRadius(String userEmail) throws IOException {
+        String path = "users/findRecomendations?email=" + userEmail;
         return get(path);
     }
 

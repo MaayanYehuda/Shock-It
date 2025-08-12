@@ -45,4 +45,18 @@
         android:hint="כתובת"
         android:inputType="textPostalAddress" />
 
+    <!-- 🆕 חדש: שדה לקליטת רדיוס ההתראות -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="רדיוס התראות (בקילומטרים):"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/et_edit_notification_radius"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="רדיוס (קילומטרים)"
+        android:inputType="number" />
+
 </LinearLayout>

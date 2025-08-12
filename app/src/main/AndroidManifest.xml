@@ -53,7 +53,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".InvitationsActivity" />
+        <activity android:name=".NotificationsActivity" />
     </application>
 
 </manifest>

@@ -56,7 +56,6 @@
             android:textDirection="rtl"
             android:padding="12dp" />
 
-
         <EditText
             android:id="@+id/password"
             android:layout_width="match_parent"
@@ -83,10 +82,21 @@
             android:id="@+id/address"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="כתובת"
+            android:hint="כתובת (נדרש למיקום)"
             android:gravity="right"
             android:textDirection="rtl"
             android:inputType="textPostalAddress"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/notificationRadius"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="רדיוס התראות בק''מ (אופציונלי)"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="number"
             android:padding="12dp"
             android:layout_marginBottom="24dp" />
 
