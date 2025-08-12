@@ -4,7 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:background="#F5F5F5"
+    android:layoutDirection="rtl">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,109 +16,161 @@
             android:id="@+id/market_profile_content_scroll_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="visible">
+            android:visibility="visible"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:id="@+id/market_profile_content"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="#FFFFFF"
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <ImageView
-                    android:id="@+id/marketImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="200dp"
-                    android:background="#EEEEEE"
-                    android:contentDescription="תמונה של שוק"
-                    android:scaleType="centerCrop"
-                    android:src="@drawable/avokado" />
-
-                <TextView
-                    android:id="@+id/marketName"
+                <!-- Card for Market Details -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingTop="16dp"
-                    android:paddingBottom="4dp"
-                    android:text="שם השוק"
-                    android:textColor="#333333"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    android:layout_marginBottom="16dp">
 
-                <TextView
-                    android:id="@+id/marketLocation"
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:id="@+id/marketImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="200dp"
+                            android:background="#E0E0E0"
+                            android:contentDescription="תמונה של שוק"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/avokado" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <TextView
+                                android:id="@+id/marketName"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="שם השוק"
+                                android:textColor="#212121"
+                                android:textSize="26sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/marketLocation"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:drawableStart="@drawable/ic_location"
+                                android:drawablePadding="8dp"
+                                android:text="מיקום: פארק תעשיות ירוקות"
+                                android:textColor="#616161"
+                                android:textSize="18sp" />
+
+                            <TextView
+                                android:id="@+id/marketHours"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:drawableStart="@drawable/ic_access_time"
+                                android:drawablePadding="8dp"
+                                android:text="שעות: 09:00 - 14:00"
+                                android:textColor="#616161"
+                                android:textSize="18sp" />
+
+                            <TextView
+                                android:id="@+id/marketDate"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:drawableStart="@drawable/ic_date_range"
+                                android:drawablePadding="8dp"
+                                android:text="תאריך: 22.04.2025"
+                                android:textColor="#616161"
+                                android:textSize="18sp" />
+
+                            <!-- Main Action Button -->
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/navigateButton"
+                                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="24dp"
+                                android:backgroundTint="#81C784"
+                                android:padding="12dp"
+                                android:text="ניווט עם Waze 🧭"
+                                android:textColor="#FFFFFF"
+                                android:textStyle="bold"
+                                app:cornerRadius="12dp"
+                                app:icon="@drawable/ic_waze"
+                                app:iconGravity="textStart"
+                                app:iconTint="@color/white" />
+
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Card for Management and Requests -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/manageMarketCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingTop="4dp"
-                    android:text="📍 מיקום: פארק תעשיות ירוקות"
-                    android:textColor="#555555"
-                    android:textSize="16sp" />
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/marketHours"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="4dp"
-                    android:text="🕒 שעות: 09:00 - 14:00"
-                    android:textColor="#555555"
-                    android:textSize="16sp" />
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
 
-                <TextView
-                    android:id="@+id/marketDate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="4dp"
-                    android:text="📅 תאריך: 22.04.2025"
-                    android:textColor="#555555"
-                    android:textSize="16sp" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/manageMarketButton"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="הזמנת חקלאים️"
+                            android:textColor="#4CAF50"
+                            android:textStyle="bold"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="#4CAF50"
+                            app:strokeWidth="1dp" />
 
-                <Button
-                    android:id="@+id/navigateButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:backgroundTint="#9DC183"
-                    android:drawableStart="@drawable/ic_waze"
-                    android:padding="12dp"
-                    android:text="ניווט עם Waze 🧭"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/viewRequestsButton"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="צפה בבקשות הצטרפות 📥"
+                            android:textColor="#2196F3"
+                            android:textStyle="bold"
+                            app:cornerRadius="12dp"
+                            app:strokeColor="#2196F3"
+                            app:strokeWidth="1dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                <Button
-                    android:id="@+id/manageMarketButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:backgroundTint="#4CAF50"
-                    android:padding="12dp"
-                    android:text="לניהול שוק 🛠️"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-
+                <!-- Farmers List Section -->
                 <TextView
                     android:id="@+id/farmersTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:paddingTop="32dp"
+                    android:layout_marginTop="16dp"
                     android:paddingBottom="8dp"
                     android:text="חקלאים משתתפים:"
-                    android:textColor="#333333"
+                    android:textColor="#212121"
                     android:textSize="20sp"
                     android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/viewRequestsButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:backgroundTint="#2196F3"
-                    android:padding="12dp"
-                    android:text="צפה בבקשות הצטרפות 📥"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/farmersList"
@@ -126,46 +179,50 @@
                     android:orientation="vertical"
                     android:paddingBottom="32dp" />
 
-                <Button
+                <!-- Back to Main Button -->
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/backToMainButton"
+                    style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:backgroundTint="#333333"
-                    android:padding="12dp"
+                    android:layout_marginTop="16dp"
+                    android:backgroundTint="#616161"
                     android:text="🔙 חזור למסך הראשי"
                     android:textColor="#FFFFFF"
-                    android:textStyle="bold" />
+                    android:textSize="16sp"
+                    app:cornerRadius="12dp"
+                    app:iconGravity="textStart"
+                    app:iconPadding="8dp" />
             </LinearLayout>
         </ScrollView>
 
-
-
+        <!-- Fragment Containers -->
         <FrameLayout
             android:id="@+id/fragment_container_manage_market"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone" />
+
         <FrameLayout
             android:id="@+id/fragment_container_farmer_profile"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:visibility="gone" />
-
     </LinearLayout>
 
+    <!-- Floating Action Buttons -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_product"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
+        android:backgroundTint="#FF6F00"
         android:clickable="true"
         android:contentDescription="הוסף מוצר לשוק"
         android:focusable="true"
-        android:backgroundTint="#FF6F00"
-        app:tint="@android:color/white"
-        app:srcCompat="@android:drawable/ic_input_add" />
+        app:srcCompat="@drawable/ic_add"
+        app:tint="@android:color/white" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_accept_invite"
@@ -176,8 +233,8 @@
         android:layout_marginEnd="88dp"
         android:backgroundTint="#4CAF50"
         android:visibility="gone"
-        app:tint="@android:color/white"
-        app:srcCompat="@drawable/ic_undone" />
+        app:srcCompat="@drawable/ic_done"
+        app:tint="@android:color/white" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_decline_invite"
@@ -187,8 +244,6 @@
         android:layout_margin="16dp"
         android:backgroundTint="#F44336"
         android:visibility="gone"
-        app:tint="@android:color/white"
-        app:srcCompat="@drawable/ic_done" />
-
-
+        app:srcCompat="@drawable/ic_close"
+        app:tint="@android:color/white" />
 </FrameLayout>

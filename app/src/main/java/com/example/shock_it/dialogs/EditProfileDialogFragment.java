@@ -2,6 +2,7 @@ package com.example.shock_it.dialogs;
 
 import android.app.Dialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -18,16 +19,13 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class EditProfileDialogFragment extends DialogFragment {
 
-    // 🆕 חדש: ממשק המאזין מעודכן כדי לכלול גם את הרדיוס
     public interface EditProfileDialogListener {
         void onProfileEdited(String name, String phone, String address, String notificationRadius);
     }
 
     private EditProfileDialogListener listener;
-    // 🆕 חדש: משתנה לשמירת הרדיוס הנוכחי
     private String currentName, currentPhone, currentAddress, currentNotificationRadius;
 
-    // 🆕 חדש: הוספת רדיוס ל-newInstance
     public static EditProfileDialogFragment newInstance(String name, String phone, String address, String notificationRadius) {
         EditProfileDialogFragment fragment = new EditProfileDialogFragment();
         Bundle args = new Bundle();
@@ -46,7 +44,6 @@ public class EditProfileDialogFragment extends DialogFragment {
             currentName = getArguments().getString("name");
             currentPhone = getArguments().getString("phone");
             currentAddress = getArguments().getString("address");
-            // 🆕 חדש: קולט את הרדיוס מתוך ה-Bundle
             currentNotificationRadius = getArguments().getString("notificationRadius");
         }
     }
@@ -65,14 +62,16 @@ public class EditProfileDialogFragment extends DialogFragment {
         EditText etName = view.findViewById(R.id.et_edit_name);
         EditText etPhone = view.findViewById(R.id.et_edit_phone);
         EditText etAddress = view.findViewById(R.id.et_edit_address);
-        // 🆕 חדש: מוצא את ה-EditText של הרדיוס
         EditText etNotificationRadius = view.findViewById(R.id.et_edit_notification_radius);
 
         etName.setText(currentName);
         etPhone.setText(currentPhone);
         etAddress.setText(currentAddress);
-        // 🆕 חדש: מציג את הרדיוס הנוכחי
         etNotificationRadius.setText(currentNotificationRadius);
+
+        // 🆕 הוספת שורת לוג חדשה כדי לוודא את הנתונים בתוך הדיאלוג
+        Log.d("EditProfileDialog", "Data received by dialog -> Phone: " + currentPhone + ", Radius: " + currentNotificationRadius);
+
 
         builder.setView(view)
                 .setTitle("ערוך פרטי פרופיל")
@@ -80,14 +79,12 @@ public class EditProfileDialogFragment extends DialogFragment {
                     String newName = etName.getText().toString().trim();
                     String newPhone = etPhone.getText().toString().trim();
                     String newAddress = etAddress.getText().toString().trim();
-                    // 🆕 חדש: קולט את ערך הרדיוס החדש
                     String newNotificationRadius = etNotificationRadius.getText().toString().trim();
 
                     if (newName.isEmpty() || newPhone.isEmpty() || newAddress.isEmpty() || newNotificationRadius.isEmpty()) {
                         Toast.makeText(requireContext(), "כל השדות חייבים להיות מלאים", Toast.LENGTH_SHORT).show();
                     } else {
                         if (listener != null) {
-                            // 🆕 חדש: מעביר את כל השדות המעודכנים, כולל הרדיוס, למאזין
                             listener.onProfileEdited(newName, newPhone, newAddress, newNotificationRadius);
                         }
                     }

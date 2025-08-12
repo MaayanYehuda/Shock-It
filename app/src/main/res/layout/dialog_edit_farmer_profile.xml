@@ -1,62 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp"
-    android:layoutDirection="rtl">
+    android:layout_height="wrap_content">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="שם:"
-        android:layout_marginTop="8dp" />
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:layoutDirection="rtl">
 
-    <EditText
-        android:id="@+id/et_edit_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="שם החקלאי"
-        android:inputType="textPersonName" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="שם:"
+            android:layout_marginTop="8dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="טלפון:"
-        android:layout_marginTop="8dp" />
+        <EditText
+            android:id="@+id/et_edit_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="שם החקלאי"
+            android:inputType="textPersonName" />
 
-    <EditText
-        android:id="@+id/et_edit_phone"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="מספר טלפון"
-        android:inputType="phone" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="טלפון:"
+            android:layout_marginTop="8dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="כתובת:"
-        android:layout_marginTop="8dp" />
+        <EditText
+            android:id="@+id/et_edit_phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="מספר טלפון"
+            android:inputType="phone" />
 
-    <EditText
-        android:id="@+id/et_edit_address"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="כתובת"
-        android:inputType="textPostalAddress" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="כתובת:"
+            android:layout_marginTop="8dp" />
 
-    <!-- 🆕 חדש: שדה לקליטת רדיוס ההתראות -->
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="רדיוס התראות (בקילומטרים):"
-        android:layout_marginTop="8dp" />
+        <EditText
+            android:id="@+id/et_edit_address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="כתובת"
+            android:inputType="textPostalAddress" />
 
-    <EditText
-        android:id="@+id/et_edit_notification_radius"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="רדיוס (קילומטרים)"
-        android:inputType="number" />
+        <!-- 🆕 חדש: שדה לקליטת רדיוס ההתראות -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="רדיוס התראות (בקילומטרים):"
+            android:layout_marginTop="8dp" />
 
-</LinearLayout>
+        <EditText
+            android:id="@+id/et_edit_notification_radius"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="רדיוס (קילומטרים)"
+            android:inputType="number" />
+    </LinearLayout>
+</ScrollView>

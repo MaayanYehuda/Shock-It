@@ -1,13 +1,13 @@
 package com.example.shock_it.ui.map.farmerProfile;
 
-import android.app.Application; // 🆕 חובה לייבא את אובייקט Application
+import android.app.Application;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.NonNull; // 🆕 חובה לייבא את ה-NonNull עבור הקונסטרקטור
-import androidx.lifecycle.AndroidViewModel; // 🆕 שינוי מרכזי: יורשים מ-AndroidViewModel
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
@@ -25,7 +25,6 @@ import classes.Item;
 import classes.Market;
 import services.Service;
 
-// 🆕 שינוי מרכזי: המחלקה יורשת כעת מ-AndroidViewModel
 public class FarmerProfileViewModel extends AndroidViewModel {
 
     private final MutableLiveData<Farmer> _farmer = new MutableLiveData<>();
@@ -33,8 +32,6 @@ public class FarmerProfileViewModel extends AndroidViewModel {
         return _farmer;
     }
 
-    // 🆕 שינוי מרכזי: הקונסטרקטור חייב לקבל את אובייקט ה-Application
-    // ואז להעביר אותו לקלאס האב (super)
     public FarmerProfileViewModel(@NonNull Application application) {
         super(application);
     }
@@ -48,8 +45,9 @@ public class FarmerProfileViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             try {
-                // 1. Fetch basic farmer profile data (name, email, phone, address)
+                // 1. Fetch basic farmer profile data
                 String profileResponse = Service.getUserProfile(email);
+                Log.d("FarmerProfileVM", "Server response for profile: " + profileResponse);
                 JSONObject profileJson = new JSONObject(profileResponse);
 
                 String name = profileJson.optString("name", "לא נמצא");
@@ -59,11 +57,15 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                 double notificationRadius = profileJson.optDouble("notificationRadius", 0.0);
                 double longitude = profileJson.optDouble("longitude", 0.0);
                 double latitude = profileJson.optDouble("latitude", 0.0);
+                String password = profileJson.optString("password", null); // שינוי: קליטת הסיסמה מהשרת, אך עדיין לא נשתמש בה
 
-                Farmer currentFarmer = new Farmer(name, farmerEmail, phone, null,address,latitude,longitude, (int)(notificationRadius));
+                // 🆕 שורה מתוקנת: סדר הפרמטרים תואם כעת לקונסטרקטור של קלאס Farmer
+                Farmer currentFarmer = new Farmer(name, farmerEmail, password, phone, address, latitude, longitude, (int) (notificationRadius));
 
+                // 🆕 הדפסת לוג חדשה כדי לוודא את הנתונים שנקלטו
+                Log.d("FarmerProfileVM", "Loaded profile data -> Name: " + name + ", Phone: " + currentFarmer.getPhone() + ", Address: " + address + ", Radius: " + notificationRadius);
 
-                    // 2. Fetch farmer's products and add to the Farmer object
+                // 2. Fetch farmer's products and add to the Farmer object
                 String productsResponse = Service.getFarmerItems(email);
                 JSONArray itemsArray = new JSONArray(productsResponse);
                 for (int i = 0; i < itemsArray.length(); i++) {
@@ -115,8 +117,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // Method to add a product, then reload the entire profile for consistency
-    public void addProduct(String email, Item item, double price)  {
+    public void addProduct(String email, Item item, double price) {
         new Thread(() -> {
             try {
                 Service.addNewItem(email, item.getName(), price, item.getDescription());
@@ -127,16 +128,16 @@ public class FarmerProfileViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // 🆕 מתודה לעדכון הפרופיל, כעת עם גישה נכונה ל-Geocoder
     public void updateFarmerProfile(String email, String name, String phone, String address, String notificationRadiusStr) {
         new Thread(() -> {
             try {
+                // 🆕 הדפסת לוג חדשה כדי לוודא את הנתונים שנשלחים
+                Log.d("FarmerProfileVM", "Updating profile with -> Name: " + name + ", Phone: " + phone + ", Address: " + address + ", Radius: " + notificationRadiusStr);
+
                 double longitude = 0;
                 double latitude = 0;
                 double notificationRadius = Double.parseDouble(notificationRadiusStr);
 
-                // שלב 1: המרת הכתובת לקואורדינטות (Geocoding)
-                // ⚠️ שינוי מרכזי: הקריאה ל-getApplication() תעבוד כעת
                 Geocoder geocoder = new Geocoder(getApplication());
                 List<Address> addresses = geocoder.getFromLocationName(address, 1);
 
@@ -150,7 +151,6 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                     return;
                 }
 
-                // שלב 2: שליחת הנתונים המעודכנים לשרת
                 String response = Service.editProfile(email, name, phone, address, longitude, latitude, notificationRadius);
                 JSONObject jsonResponse = new JSONObject(response);
                 if (jsonResponse.has("message")) {

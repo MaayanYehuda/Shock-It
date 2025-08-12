@@ -94,6 +94,9 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
 
         viewModel.getFarmer().observe(getViewLifecycleOwner(), farmer -> {
             if (farmer != null) {
+                // 🆕 הלוג הזה קריטי - הוא יראה לנו מה הערכים האמיתיים של האובייקט
+                Log.d("FarmerProfileFragment", "Observed Farmer object -> Phone: " + farmer.getPhone() + ", Radius: " + farmer.getNotificationRadius());
+
                 nameTextView.setText(farmer.getName());
                 emailTextView.setText(farmer.getEmail());
                 addressTextView.setText(farmer.getAddress());
@@ -136,21 +139,23 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
             addProductButton.setVisibility(View.GONE);
         }
 
-        // --- שינויים קריטיים כאן ---
         editProfileButton.setOnClickListener(v -> {
             Farmer currentFarmer = viewModel.getFarmer().getValue();
             if (currentFarmer != null) {
-                // 🆕 שינוי 1: מעבירים את רדיוס ההתראה (notificationRadius) לדיאלוג
+                String phone = currentFarmer.getPhone() != null ? currentFarmer.getPhone() : "";
+                String notificationRadius = String.valueOf(currentFarmer.getNotificationRadius());
+
+                Log.d("FarmerProfileFragment", "Sending to dialog -> Phone: " + phone + ", Radius: " + notificationRadius);
+
                 EditProfileDialogFragment dialog = EditProfileDialogFragment.newInstance(
                         currentFarmer.getName(),
-                        currentFarmer.getPhone(),
+                        phone,
                         currentFarmer.getAddress(),
-                        String.valueOf(currentFarmer.getNotificationRadius()) // המרה ל-String
+                        notificationRadius
                 );
 
-                dialog.setEditProfileDialogListener((newName, newPhone, newAddress, newRadiusStr) -> { // 🆕 שינוי 2: ה-lambda מקבל כעת 4 פרמטרים
+                dialog.setEditProfileDialogListener((newName, newPhone, newAddress, newRadiusStr) -> {
                     if (farmerEmail != null) {
-                        // 🆕 שינוי 3: הקריאה ל-ViewModel כוללת כעת את רדיוס ההתראה
                         viewModel.updateFarmerProfile(farmerEmail, newName, newPhone, newAddress, newRadiusStr);
                         Toast.makeText(requireContext(), "מעדכן פרטי פרופיל...", Toast.LENGTH_SHORT).show();
                     }

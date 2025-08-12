@@ -27,6 +27,7 @@ import androidx.cardview.widget.CardView;
 import com.example.shock_it.manageMarket.ManageMarketFragment;
 import com.example.shock_it.dialogs.SelectProductForMarketDialogFragment;
 import com.example.shock_it.ui.map.farmerProfile.farmerProfile;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
@@ -56,6 +57,8 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     LinearLayout farmersListContainer;
     FloatingActionButton   fabAddProduct, fabAcceptInvite, fabDeclineInvite;
     private View marketProfileContentScrollView;
+    private MaterialCardView manageMarketCard;
+
 
     // נתוני שוק ומשתמש
     String location;
@@ -76,6 +79,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         marketImage = findViewById(R.id.marketImage);
         marketName = findViewById(R.id.marketName);
         marketLocation = findViewById(R.id.marketLocation);
+        manageMarketCard = findViewById(R.id.manageMarketCard);
         marketHours = findViewById(R.id.marketHours);
         marketDate = findViewById(R.id.marketDate);
         farmersListContainer = findViewById(R.id.farmersList);
@@ -199,10 +203,10 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
 
             clearFragmentContainers();
             if (marketLocation != null) {
-                marketLocation.setText("📍 מיקום: " + location);
+                marketLocation.setText(" מיקום: " + location);
             }
             if (marketDate != null) {
-                marketDate.setText("📅 תאריך: " + date);
+                marketDate.setText("תאריך: " + date);
             }
 
             if (location != null && date != null) {
@@ -275,7 +279,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     public void displayMarketProfile(String name, String hours) {
         runOnUiThread(() -> {
             marketName.setText(name);
-            marketHours.setText("🕒 שעות: " + hours);
+            marketHours.setText(" שעות: " + hours);
         });
     }
 
@@ -303,6 +307,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
             Log.d("ButtonVisibility", "updateFabState: isUserFounder = " + isUserFounder);
             if (isUserFounder) {
                 // אם המשתמש הוא מייסד השוק
+                manageMarketCard.setVisibility(View.VISIBLE);
                 manageMarketButton.setVisibility(View.VISIBLE);
                 manageMarketButton.setEnabled(true);
                 viewRequestsButton.setVisibility(View.VISIBLE);
@@ -310,6 +315,8 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 Log.d("ButtonVisibility", "Founder buttons (Manage Market, View Requests) set VISIBLE and ENABLED.");
             } else {
                 // אם המשתמש אינו מייסד השוק
+                manageMarketCard.setVisibility(View.GONE);
+
                 manageMarketButton.setVisibility(View.GONE);
                 manageMarketButton.setEnabled(false);
                 viewRequestsButton.setVisibility(View.GONE);

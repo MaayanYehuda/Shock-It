@@ -153,13 +153,19 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
         }).start();
     }
 
+    // 🆕 תיקון קריטי: הפונקציה מנסה כעת למצוא את מזהה השוק גם תחת המפתח "marketId"
     private List<HashMap<String, String>> parseMarkets(JSONArray marketsArray) throws JSONException {
         List<HashMap<String, String>> markets = new ArrayList<>();
         if (marketsArray != null) {
             for (int i = 0; i < marketsArray.length(); i++) {
                 JSONObject marketJson = marketsArray.getJSONObject(i);
                 HashMap<String, String> marketData = new HashMap<>();
-                marketData.put("marketId", marketJson.optString("id"));
+
+                // 🆕 שינוי כאן: קודם מנסים לקבל את מזהה השוק עם המפתח "marketId",
+                // ואם הוא לא קיים, משתמשים במפתח "id" כברירת מחדל
+                String marketId = marketJson.optString("marketId", marketJson.optString("id", ""));
+                marketData.put("marketId", marketId);
+
                 marketData.put("date", marketJson.optString("date"));
                 marketData.put("location", marketJson.optString("location"));
                 marketData.put("marketName", marketJson.optString("name", marketJson.optString("location")));
@@ -172,6 +178,12 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
     @Override
     public void onAccept(HashMap<String, String> marketData) {
         String marketId = marketData.get("marketId");
+        // � הוספנו בדיקה כדי למנוע שליחת בקשה עם מזהה ריק
+        if (marketId == null || marketId.isEmpty()) {
+            Toast.makeText(NotificationsActivity.this, "שגיאה: מזהה שוק ריק, לא ניתן לאשר.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         new Thread(() -> {
             try {
                 String response = Service.acceptInvitation(userEmail, marketId);
@@ -196,6 +208,11 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
     @Override
     public void onDecline(HashMap<String, String> marketData) {
         String marketId = marketData.get("marketId");
+        if (marketId == null || marketId.isEmpty()) {
+            Toast.makeText(NotificationsActivity.this, "שגיאה: מזהה שוק ריק, לא ניתן לדחות.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         new Thread(() -> {
             try {
                 String response = Service.declineInvitation(userEmail, marketId);
@@ -221,6 +238,11 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
     public void onRequest(HashMap<String, String> marketData) {
         currentMarketId = marketData.get("marketId");
         currentMarketData = marketData;
+
+        if (currentMarketId == null || currentMarketId.isEmpty()) {
+            Toast.makeText(NotificationsActivity.this, "שגיאה: מזהה שוק ריק, לא ניתן לשלוח בקשה.", Toast.LENGTH_LONG).show();
+            return;
+        }
 
         new Thread(() -> {
             try {
