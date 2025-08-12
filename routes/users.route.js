@@ -5,8 +5,8 @@ const bcrypt = require("bcrypt");
 // התחברות ל-NEO4J
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  // neo4j.auth.basic("neo4j", "loolrov17")
-   neo4j.auth.basic("neo4j", "315833301")
+  neo4j.auth.basic("neo4j", "loolrov17")
+  //  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
@@ -57,9 +57,21 @@ router.get("/login", async (req, res) => {
 
 // דוגמה: הוספת משתמש חדש
 router.post("/register", async (req, res) => {
-  const { email, name, phone, password, address } = req.body;
+  const {
+    email,
+    name,
+    phone,
+    password,
+    address,
+    latitude,
+    longitude,
+    notificationRadius,
+  } = req.body;
 
+  let session;
   try {
+    session = driver.session();
+
     // בדיקה אם המשתמש כבר קיים
     const checkResult = await session.run(
       "MATCH (u:Person {email: $email}) RETURN u",
@@ -70,19 +82,53 @@ router.post("/register", async (req, res) => {
     }
 
     // יצירת hash לסיסמה
-    const hashedPassword = await bcrypt.hash(password, 10); // 10 = salt rounds
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // בניית שאילתה דינמית
+    let cypherQuery = `
+            CREATE (u:Person {
+                email: $email, 
+                name: $name, 
+                phone: $phone, 
+                password: $hashedPassword, 
+                address: $address
+        `;
+
+    const params = {
+      email,
+      name,
+      phone,
+      hashedPassword,
+      address,
+    };
+
+    if (latitude) {
+      cypherQuery += ", latitude: toFloat($latitude)";
+      params.latitude = latitude;
+    }
+    if (longitude) {
+      cypherQuery += ", longitude: toFloat($longitude)";
+      params.longitude = longitude;
+    }
+    if (notificationRadius) {
+      cypherQuery += ", notificationRadius: toInteger($notificationRadius)";
+      params.notificationRadius = notificationRadius;
+    }
+
+    cypherQuery += "}) RETURN u";
 
     // שמירה ב-DB עם הסיסמה המוצפנת
-    const result = await session.run(
-      "CREATE (u:Person {email: $email, name: $name, phone: $phone, password: $password, address: $address}) RETURN u",
-      { email, name, phone, password: hashedPassword, address }
-    );
+    const result = await session.run(cypherQuery, params);
 
     const user = result.records[0].get("u").properties;
     res.status(201).json(user);
   } catch (error) {
     console.error(error);
     res.status(500).send("Error creating user");
+  } finally {
+    if (session) {
+      session.close();
+    }
   }
 });
 
@@ -113,19 +159,39 @@ router.get("/profile", async (req, res) => {
 });
 
 router.put("/update", async (req, res) => {
-  const { email, name, phone, address } = req.body; // Expects email, name, phone, address
-  if (!email || !name || !phone || !address) {
-    // Checks if all are present
+  // קולט את כל השדות מהבקשה, כולל notificationRadius וגם את הקואורדינטות.
+  const {
+    email,
+    name,
+    phone,
+    address,
+    longitude,
+    latitude,
+    notificationRadius,
+  } = req.body;
+
+  // מוודא שכל השדות הנדרשים קיימים.
+  if (
+    !email ||
+    !name ||
+    !phone ||
+    !address ||
+    !notificationRadius ||
+    !longitude ||
+    !latitude
+  ) {
     return res.status(400).json({ error: "Missing fields in request" });
   }
+
   try {
     const result = await session.run(
       `
       MATCH (u:Person {email: $email})
-      SET u.name = $name, u.phone = $phone, u.address = $address
+      // עדכן את כל השדות הקיימים, כולל notificationRadius והקואורדינטות החדשות.
+      SET u.name = $name, u.phone = $phone, u.address = $address,u.latitude=$latitude, u.longitude= $longitude ,u.notificationRadius = $notificationRadius
       RETURN u
       `,
-      { email, name, phone, address }
+      { email, name, phone, address, notificationRadius, longitude, latitude }
     );
 
     if (result.records.length === 0) {
@@ -140,4 +206,37 @@ router.put("/update", async (req, res) => {
   }
 });
 
+router.get("/findRecomendations", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: "Missing user email" });
+  }
+
+  try {
+    const cypherQuery = `
+      // מצא את המשתמש ופרטי המיקום שלו
+      MATCH (u:Person {email: $email})
+      // מצא את כל השווקים
+      MATCH (m:Market)
+      // ודא שהשוק בטווח הרדיוס של המשתמש (נקודות המרחק מחושבות במטרים)
+      WHERE point.distance(
+        point({latitude: u.latitude, longitude: u.longitude}), 
+        point({latitude: m.latitude, longitude: m.longitude})
+      ) <= u.notificationRadius * 1000
+      // סנן החוצה שווקים שהמשתמש כבר מחובר אליהם
+      AND NOT (u)-[:INVITE|REQUEST|FOUNDER]->(m)
+      RETURN m
+    `;
+
+    const result = await session.run(cypherQuery, { email });
+
+    const markets = result.records.map((record) => record.get("m").properties);
+    console.log("Found markets:", markets);
+    res.json(markets);
+  } catch (error) {
+    console.error("Error finding recommendations:", error);
+    res.status(500).send("Server error finding recommendations");
+  }
+});
 module.exports = router;

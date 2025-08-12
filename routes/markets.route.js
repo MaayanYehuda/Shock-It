@@ -5,8 +5,8 @@ const { v4: uuidv4 } = require("uuid"); // 🆕 הוספה: ייבוא ספרי�
 
 const driver = neo4j.driver(
   "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  // neo4j.auth.basic("neo4j", "loolrov17")
-   neo4j.auth.basic("neo4j", "315833301")
+  neo4j.auth.basic("neo4j", "loolrov17")
+  //  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
@@ -707,7 +707,7 @@ router.get("/:marketId/requests", async (req, res) => {
     console.log(`Fetching pending requests for market ID: ${marketId}`);
 
     const result = await session.run(
-  `
+      `
   MATCH (f:Person)-[r:REQUEST]->(m:Market {id: $marketId})
   WHERE r.status IS NULL OR r.status <> "declined"
   RETURN f.name AS farmerName, 
@@ -715,8 +715,8 @@ router.get("/:marketId/requests", async (req, res) => {
          r.status AS status, 
          r.requestedProducts AS requestedProducts
   `,
-  { marketId }
-);
+      { marketId }
+    );
 
     const requests = result.records.map((record) => {
       const requestedProductsJson = record.get("requestedProducts");
