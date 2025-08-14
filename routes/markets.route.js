@@ -960,4 +960,195 @@ router.put("/:marketId/requests/decline", async (req, res) => {
   }
 });
 
+router.get("/search", async (req, res) => {
+  const { query, userLat, userLon } = req.query;
+
+  console.log("--- Incoming Search Request ---");
+  console.log("Raw Query Params:", req.query);
+
+  // Validate that all necessary parameters exist
+  if (
+    !query ||
+    typeof query !== "string" ||
+    query.trim() === "" ||
+    !userLat ||
+    !userLon
+  ) {
+    console.error(
+      "Validation failed: Missing or invalid search query or location."
+    );
+    return res.status(400).json({
+      message: "Search query and user location (userLat, userLon) are required",
+    });
+  }
+
+  try {
+    const userLatFloat = parseFloat(userLat);
+    const userLonFloat = parseFloat(userLon);
+
+    // Validate that lat/lon are valid numbers
+    if (isNaN(userLatFloat) || isNaN(userLonFloat)) {
+      console.error(
+        `Validation failed: Failed to parse userLat (${userLat}) or userLon (${userLon}).`
+      );
+      return res
+        .status(400)
+        .json({ message: "Invalid user location provided." });
+    }
+
+    console.log("Parsed User Location:", {
+      latitude: userLatFloat,
+      longitude: userLonFloat,
+    });
+
+    // --- Execute the three distinct search scenarios ---
+    const allResults = {
+      markets: [],
+      farmers: [],
+    };
+    const uniqueIdentifiers = new Set();
+
+    // 1. Search for Markets by location or date
+    // This query finds markets and calculates distance.
+    const marketLocationQuery = `
+            MATCH (m:Market)
+            WHERE toLower(m.location) CONTAINS toLower($query) OR toLower(m.date) CONTAINS toLower($query)
+            WITH m, point({latitude: toFloat(m.latitude), longitude: toFloat(m.longitude)}) AS marketPoint
+            RETURN m AS market, point.distance(marketPoint, point({latitude: $userLat, longitude: $userLon})) AS distance
+        `;
+    const marketResult = await session.run(marketLocationQuery, {
+      query: query,
+      userLat: userLatFloat,
+      userLon: userLonFloat,
+    });
+
+    for (const record of marketResult.records) {
+      const market = record.get("market").properties;
+      const identifier = `Market-${market.id}`;
+      if (!uniqueIdentifiers.has(identifier)) {
+        allResults.markets.push({
+          type: "Market",
+          ...market,
+          distance: record.get("distance"),
+        });
+        uniqueIdentifiers.add(identifier);
+      }
+    }
+
+    // 2. Search for Farmers by name or email
+    // This query finds farmers and includes all their participating markets.
+    const farmerQuery = `
+            MATCH (p:Person)
+            WHERE toLower(p.name) CONTAINS toLower($query) OR toLower(p.email) CONTAINS toLower($query)
+            OPTIONAL MATCH (p)<-[:INVITE {participate: true}]-(m:Market)
+            WITH p, collect(m) as markets, point({latitude: toFloat(p.lat), longitude: toFloat(p.lon)}) AS farmerPoint
+            RETURN p AS farmer, markets, point.distance(farmerPoint, point({latitude: $userLat, longitude: $userLon})) AS distance
+        `;
+    const farmerResult = await session.run(farmerQuery, {
+      query: query,
+      userLat: userLatFloat,
+      userLon: userLonFloat,
+    });
+
+    for (const record of farmerResult.records) {
+      const farmer = record.get("farmer").properties;
+      const identifier = `Farmer-${farmer.email}`;
+      if (!uniqueIdentifiers.has(identifier)) {
+        allResults.farmers.push({
+          type: "Farmer",
+          ...farmer,
+          distance: record.get("distance"),
+          participatingMarkets: record
+            .get("markets")
+            .map((market) => market.properties),
+        });
+        uniqueIdentifiers.add(identifier);
+      }
+    }
+
+    // 3. Search for Products offered by Farmers or available at Markets
+    // This query searches for items and returns both the farmers and markets associated with them.
+    const productQuery = `
+            // Find farmers offering the product
+            MATCH (p:Person)-[:OFFERS]->(i:Item)
+            WHERE toLower(i.name) CONTAINS toLower($query) OR toLower(i.description) CONTAINS toLower($query)
+            OPTIONAL MATCH (p)-[:INVITE {participate: true}]->(m:Market)
+            WITH DISTINCT p, collect(m) AS markets, point({latitude: toFloat(p.lat), longitude: toFloat(p.lon)}) AS farmerPoint
+            RETURN 'Farmer' AS type, p AS entity, markets, point.distance(farmerPoint, point({latitude: $userLat, longitude: $userLon})) AS distance
+            
+            UNION ALL
+            
+            // Find markets with the product
+            MATCH (i:Item)<-[:WILL_BE]-(m:Market)
+            WHERE toLower(i.name) CONTAINS toLower($query) OR toLower(i.description) CONTAINS toLower($query)
+            WITH DISTINCT m, point({latitude: toFloat(m.latitude), longitude: toFloat(m.longitude)}) AS marketPoint
+            RETURN 'Market' AS type, m AS entity, null as markets, point.distance(marketPoint, point({latitude: $userLat, longitude: $userLon})) AS distance
+        `;
+    const productResult = await session.run(productQuery, {
+      query: query,
+      userLat: userLatFloat,
+      userLon: userLonFloat,
+    });
+
+    for (const record of productResult.records) {
+      const type = record.get("type");
+      const entity = record.get("entity").properties;
+      const distance = record.get("distance");
+
+      if (type === "Farmer") {
+        const identifier = `Farmer-${entity.email}`;
+        if (!uniqueIdentifiers.has(identifier)) {
+          allResults.farmers.push({
+            type: "Farmer",
+            ...entity,
+            distance: distance,
+            participatingMarkets: record
+              .get("markets")
+              .map((market) => market.properties),
+          });
+          uniqueIdentifiers.add(identifier);
+        }
+      } else if (type === "Market") {
+        const identifier = `Market-${entity.id}`;
+        if (!uniqueIdentifiers.has(identifier)) {
+          allResults.markets.push({
+            type: "Market",
+            ...entity,
+            distance: distance,
+          });
+          uniqueIdentifiers.add(identifier);
+        }
+      }
+    }
+
+    // --- Custom Sorting Logic ---
+    // Sort markets by date, then by distance
+    allResults.markets.sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      if (dateA.getTime() !== dateB.getTime()) {
+        return dateA.getTime() - dateB.getTime();
+      }
+      return a.distance - b.distance;
+    });
+
+    // Sort farmers by distance
+    allResults.farmers.sort((a, b) => a.distance - b.distance);
+
+    // Combine all results into one final, sorted array.
+    const combinedResults = [...allResults.farmers, ...allResults.markets];
+
+    console.log("--- Final Combined Results (deduplicated and sorted) ---");
+    console.log(combinedResults);
+    res.status(200).json({ results: combinedResults });
+  } catch (error) {
+    console.error("--- Error Searching ---");
+    console.error("Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  } finally {
+    // We don't need to close the session here since it's a shared session.
+    // The driver should be closed on application shutdown.
+  }
+});
+
 module.exports = router;
