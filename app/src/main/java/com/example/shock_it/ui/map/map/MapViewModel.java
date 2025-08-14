@@ -1,46 +1,44 @@
-package com.example.shock_it.ui.map.map; // ודא שה-package name נכון
+package com.example.shock_it.ui.map.map;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import classes.Market; // ודא ייבוא Market הנכון
+import classes.Farmer;
+import classes.Market;
+import services.Service;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate; // ייבוא LocalDate, כפי שנדרש על ידי Market
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
-
-import services.Service; // ודא ש-Service מיובא נכון
 
 public class MapViewModel extends AndroidViewModel {
 
-    // LiveData יחזיק כעת רשימה של אובייקטי Market ישירות
-    private MutableLiveData<List<Market>> marketsLiveData;
+    private MutableLiveData<List<Object>> locationsLiveData;
     private MutableLiveData<Boolean> isLoadingLiveData;
     private MutableLiveData<String> errorMessageLiveData;
 
-    private boolean isMarketsLoaded = false;
+    private boolean isLocationsLoaded = false;
 
     public MapViewModel(Application application) {
         super(application);
-        marketsLiveData = new MutableLiveData<>();
+        locationsLiveData = new MutableLiveData<>();
         isLoadingLiveData = new MutableLiveData<>();
         errorMessageLiveData = new MutableLiveData<>();
     }
 
-    // מתודות לקבלת ה-LiveData מחוץ ל-ViewModel (עבור ה-Fragment)
-    public LiveData<List<Market>> getMarketsLiveData() {
-        return marketsLiveData;
+    public LiveData<List<Object>> getLocationsLiveData() {
+        return locationsLiveData;
     }
 
     public LiveData<Boolean> getIsLoadingLiveData() {
@@ -51,100 +49,128 @@ public class MapViewModel extends AndroidViewModel {
         return errorMessageLiveData;
     }
 
-    /**
-     * טוען את רשימת השווקים מהשרת, ממוינים לפי תאריך וקרבה למיקום המשתמש.
-     * הקריאה מתבצעת רק אם הנתונים לא נטענו עדיין (isMarketsLoaded הוא false).
-     *
-     * @param userLat קו רוחב של מיקום המשתמש.
-     * @param userLon קו אורך של מיקום המשתמש.
-     */
     public void loadMarkets(double userLat, double userLon) {
-        // אם השווקים כבר נטענו, אל תבצע קריאה נוספת לשרת.
-        if (isMarketsLoaded) {
-            Log.d("MapViewModel", "Markets already loaded, skipping redundant fetch.");
+        if (isLocationsLoaded) {
+            Log.d("MapViewModel", "Locations already loaded, skipping redundant fetch.");
             return;
         }
 
-        // עדכן את מצב הטעינה ל-true (הצג אינדיקטור טעינה ב-UI)
         isLoadingLiveData.postValue(true);
-        // נקה הודעות שגיאה קודמות
         errorMessageLiveData.postValue(null);
 
-        // בצע את קריאת הרשת ב-Thread נפרד כדי לא לחסום את ה-UI Thread
         new Thread(() -> {
             try {
-                // קבלת התאריך הנוכחי בפורמט YYYY-MM-DD
-                String currentDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                Log.d("MapViewModel", "Fetching markets for location: " + userLat + ", " + userLon + " and date: " + currentDate);
+                // נשתמש בפונקציה הקודמת לטעינת שווקים בלבד, ונדאג להשתמש בפורמט הנתונים הנכון
+                String response = Service.getOrderedMarkets(userLat, userLon, LocalDate.now().toString());
+                List<Object> fetchedLocations = parseMarketsFromJson(response);
+                locationsLiveData.postValue(fetchedLocations);
+                isLocationsLoaded = true;
 
-                // קריאה לשירות ה-Service כדי לקבל את נתוני השווקים מהשרת
-                // (השרת עדיין ישלח distance, אך ה-ViewModel יתעלם ממנו)
-                String response = Service.getOrderedMarkets(userLat, userLon, currentDate);
-                Log.d("MapViewModel", "Server response for markets: " + response);
-
-                // פרסור תגובת ה-JSON לרשימת אובייקטי Market
-                List<Market> fetchedMarkets = parseMarketsFromJson(response);
-                // עדכן את ה-LiveData של השווקים. זה יפעיל את ה-Observer ב-Fragment.
-                marketsLiveData.postValue(fetchedMarkets);
-                // סמן שהנתונים נטענו בהצלחה
-                isMarketsLoaded = true;
-
-            } catch (IOException e) {
-                // טיפול בשגיאות רשת
-                Log.e("MapViewModel", "Network error loading markets: " + e.getMessage(), e);
-                errorMessageLiveData.postValue("שגיאת רשת בטעינת שווקים: " + e.getMessage());
-            } catch (JSONException e) {
-                // טיפול בשגיאות פענוח JSON
-                Log.e("MapViewModel", "JSON parsing error loading markets: " + e.getMessage(), e);
-                errorMessageLiveData.postValue("שגיאת פענוח נתונים בטעינת שווקים: " + e.getMessage());
+            } catch (IOException | JSONException e) {
+                Log.e("MapViewModel", "Error loading markets: " + e.getMessage(), e);
+                errorMessageLiveData.postValue("שגיאה בטעינת שווקים: " + e.getMessage());
             } finally {
-                // תמיד הסתר את אינדיקטור הטעינה בסיום, בין אם הצליח או נכשל
+                isLoadingLiveData.postValue(false);
+            }
+        }).start();
+    }
+
+    public void searchLocations(String query, double userLat, double userLon) {
+        if (query == null || query.isEmpty()) {
+            loadMarkets(userLat, userLon);
+            return;
+        }
+
+        isLoadingLiveData.postValue(true);
+        errorMessageLiveData.postValue(null);
+
+        new Thread(() -> {
+            try {
+                String response = Service.search(query, userLat, userLon);
+                Log.d("MapViewModel", "Search response received: " + response);
+                List<Object> searchResults = parseSearchResponse(response);
+                locationsLiveData.postValue(searchResults);
+            } catch (IOException | JSONException e) {
+                Log.e("MapViewModel", "Error searching locations: " + e.getMessage(), e);
+                errorMessageLiveData.postValue("שגיאה בחיפוש: " + e.getMessage());
+            } finally {
                 isLoadingLiveData.postValue(false);
             }
         }).start();
     }
 
     /**
-     * מפרסר את תגובת ה-JSON מהשרת לרשימת אובייקטי Market.
-     * שימו לב: מתודה זו תתעלם משדות כמו 'id', 'hours' ו-'distance'
-     * בתגובת השרת, מכיוון שהם אינם קיימים במחלקת Market הנוכחית.
+     * מפרסר את תגובת ה-JSON מהשרת לרשימת אובייקטים מעורבת (Market ו-Farmer).
+     * <p>
+     * **שינוי:** מתודה זו מטפלת במבנה ה-JSON של תגובת החיפוש,
+     * שמכיל אובייקט ראשי עם מפתח "results". עבור חקלאי, היא מפרסרת
+     * את רשימת השווקים המשתתפים שלו ומוסיפה אותם לרשימה הכללית.
      *
      * @param jsonResponse תגובת ה-JSON מהשרת כמחרוזת.
-     * @return רשימת אובייקטי Market.
+     * @return רשימת אובייקטים (Market ו/או Farmer).
      * @throws JSONException אם יש שגיאה בפענוח ה-JSON.
      */
-    private List<Market> parseMarketsFromJson(String jsonResponse) throws JSONException {
-        List<Market> markets = new ArrayList<>();
+    @SuppressLint("NewApi")
+    private List<Object> parseSearchResponse(String jsonResponse) throws JSONException {
+        List<Object> locations = new ArrayList<>();
+        JSONObject responseObject = new JSONObject(jsonResponse);
+        JSONArray jsonArray = responseObject.getJSONArray("results");
+
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject obj = jsonArray.getJSONObject(i);
+            String type = obj.optString("type");
+            if ("Market".equals(type)) {
+                String locationName = obj.optString("location");
+                String dateStr = obj.optString("date");
+                double latitude = obj.optDouble("latitude");
+                double longitude = obj.optDouble("longitude");
+                locations.add(new Market(LocalDate.parse(dateStr), locationName, latitude, longitude));
+            } else if ("Farmer".equals(type)) {
+                String name = obj.optString("name");
+                String email = obj.optString("email");
+                // מוסיפים את החקלאי לרשימה
+                locations.add(new Farmer(name, email));
+
+                // מוסיפים את כל השווקים של החקלאי לרשימה
+                if (obj.has("participatingMarkets")) {
+                    JSONArray participatingMarketsJson = obj.getJSONArray("participatingMarkets");
+                    for (int j = 0; j < participatingMarketsJson.length(); j++) {
+                        JSONObject marketObj = participatingMarketsJson.getJSONObject(j);
+                        String marketLocation = marketObj.getString("location");
+                        String marketDateStr = marketObj.getString("date");
+                        double marketLat = marketObj.optDouble("latitude", 0.0);
+                        double marketLng = marketObj.optDouble("longitude", 0.0);
+
+                        LocalDate marketDate = null;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            marketDate = LocalDate.parse(marketDateStr);
+                        }
+                        Market market = new Market(marketDate, marketLocation, marketLat, marketLng);
+                        locations.add(market);
+                    }
+                }
+            }
+        }
+        return locations;
+    }
+
+    @SuppressLint("NewApi")
+    private List<Object> parseMarketsFromJson(String jsonResponse) throws JSONException {
+        List<Object> markets = new ArrayList<>();
         JSONArray jsonArray = new JSONArray(jsonResponse);
         for (int i = 0; i < jsonArray.length(); i++) {
             JSONObject marketObj = jsonArray.getJSONObject(i);
-            // String id = marketObj.optString("id"); // מתעלם
             String locationName = marketObj.optString("location");
             String dateStr = marketObj.optString("date");
-            // String hours = marketObj.optString("hours"); // מתעלם
             double latitude = marketObj.optDouble("latitude");
             double longitude = marketObj.optDouble("longitude");
-            // double distance = marketObj.optDouble("distance", -1.0); // מתעלם
-
-            // המרת מחרוזת התאריך ל-LocalDate, כפי שמחלקת Market מצפה
-            LocalDate date = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                date = LocalDate.parse(dateStr);
-            }
-
-            // יצירת אובייקט Market באמצעות הקונסטרוקטור המקורי שלו
-            markets.add(new Market(date, locationName, latitude, longitude));
+            markets.add(new Market(LocalDate.parse(dateStr), locationName, latitude, longitude));
         }
         return markets;
     }
 
-    /**
-     * מאפס את דגל הטעינה כדי לאפשר טעינה מחדש של השווקים.
-     * שימושי כאשר רוצים לרענן את נתוני המפה (לדוגמה, לאחר שינוי מיקום המשתמש
-     * או כאשר המשתמש מבקש רענון ידני).
-     */
     public void resetMarketsLoaded() {
-        isMarketsLoaded = false;
-        Log.d("MapViewModel", "Markets loaded flag reset.");
+        isLocationsLoaded = false;
+        Log.d("MapViewModel", "Locations loaded flag reset.");
     }
 }

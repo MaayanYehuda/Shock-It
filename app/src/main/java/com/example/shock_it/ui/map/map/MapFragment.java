@@ -1,4 +1,4 @@
-package com.example.shock_it.ui.map.map; // ודא שה-package name נכון
+package com.example.shock_it.ui.map.map;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -7,17 +7,24 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.ShapeDrawable;
-import android.location.Location; // ✅ ייבוא Location
+import android.location.Location;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.app.ActivityCompat; // ✅ ייבוא ActivityCompat
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -28,8 +35,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.shock_it.NotificationsActivity;
 import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
-import com.example.shock_it.ui.map.MarketAdapter;
-import com.example.shock_it.ui.map.map.MapViewModel; // ✅ ייבוא MapViewModel הנכון (ודא שזה ה-package הנכון אם הוא שונה)
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -40,33 +45,39 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener; // ✅ ייבוא OnSuccessListener
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
-import java.util.Locale; // ✅ ייבוא Locale
+import java.util.Locale;
 
-import classes.Market; // ✅ ייבוא Market (ודא שה-package הנכון)
+import classes.Market;
+import classes.Farmer;
 
 public class MapFragment extends Fragment implements
-        MarketAdapter.OnMarketClickListener,
+        LocationAdapter.OnLocationClickListener,
         GoogleMap.OnMarkerClickListener {
 
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
     private FusedLocationProviderClient fusedLocationClient;
     private MapViewModel mapViewModel;
     private GoogleMap mGoogleMap;
-    private MarketAdapter marketAdapter;
+    private LocationAdapter locationAdapter;
     private RecyclerView recyclerView;
     private BottomSheetBehavior<View> bottomSheetBehavior;
-    // מפה זו תשמור Market אובייקטים, כפי שהיה במקור
-    private HashMap<Marker, Market> markerMarketMap = new HashMap<>();
-
-    // שדה חדש לשמירת מיקום המשתמש הנוכחי לחישובי מרחק
+    private HashMap<Marker, Object> markerObjectMap = new HashMap<>();
     private Location currentUserLocation;
+
+    private ImageButton openSearchButton;
+    private LinearLayout searchContainer;
+    private EditText searchEditText;
+    private ImageButton searchButton;
+    private ImageButton clearSearchButton;
+    private ImageButton backButton;
+    private TextView nearbyMarketsTitle; // הוספנו את ה-TextView כדי שנוכל לשנות את הטקסט שלו
 
     @Nullable
     @Override
@@ -77,13 +88,13 @@ public class MapFragment extends Fragment implements
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
         mapViewModel = new ViewModelProvider(this).get(MapViewModel.class);
 
+        // מציאת הרכיבים מה-XML
         recyclerView = rootView.findViewById(R.id.marketsView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        // MarketAdapter כעת מקבל List<Market> ישירות
-        marketAdapter = new MarketAdapter(new ArrayList<>(), this);
-        recyclerView.setAdapter(marketAdapter);
+        locationAdapter = new LocationAdapter(new ArrayList<>(), this);
+        recyclerView.setAdapter(locationAdapter);
 
-        // הוספת קו הפרדה בין פריטים
+        // הגדרת קו מפריד ב-RecyclerView
         DividerItemDecoration divider = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         ShapeDrawable dividerDrawable = new ShapeDrawable();
         dividerDrawable.setIntrinsicHeight(1);
@@ -91,41 +102,34 @@ public class MapFragment extends Fragment implements
         divider.setDrawable(dividerDrawable);
         recyclerView.addItemDecoration(divider);
 
-        // 🟢 צפייה בנתוני השווקים מה-ViewModel. זה יעדכן גם את ה-RecyclerView וגם את המפה.
-        // כעת צופה ב-List<Market>
-        mapViewModel.getMarketsLiveData().observe(getViewLifecycleOwner(), markets -> {
-            Log.d("MapFragment", "ViewModel markets updated. Updating UI components. Markets count: " + (markets != null ? markets.size() : 0));
-
-            // עדכון ה-RecyclerView (אין צורך בהמרה)
-            marketAdapter.setMarketList(markets);
-            marketAdapter.notifyDataSetChanged();
+        // צפייה בשינויים ברשימת המיקומים (שווקים/חקלאים)
+        mapViewModel.getLocationsLiveData().observe(getViewLifecycleOwner(), locations -> {
+            Log.d("MapFragment", "ViewModel locations updated. Updating UI components. Locations count: " + (locations != null ? locations.size() : 0));
+            locationAdapter.setLocationList(locations);
             Log.d("MapFragment", "RecyclerView adapter updated and notified.");
-
-            // עדכון סמני המפה (רק אם המפה מוכנה)
-            updateMapMarkers(markets); // העבר את List<Market>
-        });
-
-        // 🟢 צפייה במצב טעינה מה-ViewModel
-        mapViewModel.getIsLoadingLiveData().observe(getViewLifecycleOwner(), isLoading -> {
-            // כאן תוכל להציג/להסתיר ProgressBar או הודעת טעינה ב-UI
-            if (isLoading) {
-                Log.d("MapFragment", "Loading markets...");
-                // לדוגמה: showProgressBar();
+            updateMapMarkers(locations);
+            // אם הרשימה מעודכנת בעקבות חיפוש, נציג את כפתור החזרה.
+            if (!searchEditText.getText().toString().isEmpty()) {
+                backButton.setVisibility(View.VISIBLE);
+                nearbyMarketsTitle.setText("תוצאות חיפוש"); // שינוי הכותרת
             } else {
-                Log.d("MapFragment", "Finished loading markets.");
-                // לדוגמה: hideProgressBar();
+                // אחרת, נסתיר אותו
+                backButton.setVisibility(View.GONE);
+                nearbyMarketsTitle.setText("רשימת שווקים קרובים"); // החזרת הכותרת למצב הראשוני
             }
         });
 
-        // 🟢 צפייה בהודעות שגיאה מה-ViewModel
+        mapViewModel.getIsLoadingLiveData().observe(getViewLifecycleOwner(), isLoading -> {
+            // טיפול במצב טעינה
+        });
+
         mapViewModel.getErrorMessageLiveData().observe(getViewLifecycleOwner(), errorMessage -> {
             if (errorMessage != null && !errorMessage.isEmpty()) {
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
             }
         });
 
-
-        // איתור ה-SupportMapFragment בתוך ה-Fragment עצמו
+        // הגדרת המפה
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getChildFragmentManager().findFragmentById(R.id.map);
         if (mapFragment != null) {
@@ -142,17 +146,12 @@ public class MapFragment extends Fragment implements
                 } catch (Resources.NotFoundException e) {
                     Log.e("MapStyle", "Can't find style. Error: ", e);
                 }
-
-                // בדוק הרשאות מיקום וטען שווקים
                 checkLocationPermission();
 
-                // 🌟 חשוב: אם הנתונים כבר נטענו ל-ViewModel לפני שהמפה הייתה מוכנה, עדכן אותה כעת.
-                // זה מטפל במצב שבו ה-Fragment נבנה מחדש והנתונים כבר ב-ViewModel.
-                // שימוש ב-getMarketsLiveData().getValue()
-                List<Market> currentMarkets = mapViewModel.getMarketsLiveData().getValue();
-                if (currentMarkets != null && !currentMarkets.isEmpty()) {
-                    Log.d("MapFragment", "Malp ready, updating with existing ViewModel data.");
-                    updateMapMarkers(currentMarkets);
+                List<Object> currentLocations = mapViewModel.getLocationsLiveData().getValue();
+                if (currentLocations != null && !currentLocations.isEmpty()) {
+                    Log.d("MapFragment", "Map ready, updating with existing ViewModel data.");
+                    updateMapMarkers(currentLocations);
                 }
             });
         }
@@ -161,105 +160,186 @@ public class MapFragment extends Fragment implements
         View bottomSheet = rootView.findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setDraggable(true);
-        bottomSheetBehavior.setPeekHeight(180); // גובה ההצצה במצב מכווץ
-        bottomSheetBehavior.setHideable(false); // אפשר לשנות את זה ל-true אם רוצים לאפשר הסתרה
+        bottomSheetBehavior.setPeekHeight(180);
+        bottomSheetBehavior.setHideable(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        // כפתור הזמנות
-        FloatingActionButton invitesButton = rootView.findViewById(R.id.messages);
-        if (invitesButton != null) {
-            invitesButton.setOnClickListener(v -> {
-                Log.d("MapFragment", "Navigating to Invitations Activity...");
+        // הגדרת כפתור ההודעות
+        FloatingActionButton messagesButton = rootView.findViewById(R.id.messages);
+        if (messagesButton != null) {
+            messagesButton.setOnClickListener(v -> {
+                Log.d("MapFragment", "Navigating to Notifications Activity...");
                 Intent intent = new Intent(requireContext(), NotificationsActivity.class);
                 startActivity(intent);
             });
-        } else {
-            Log.e("MapFragment", "FloatingActionButton (for Invitations) not found!");
         }
 
+        // איתור רכיבי החיפוש עם ה-IDs הנכונים מה-XML
+        openSearchButton = rootView.findViewById(R.id.openSearchButton);
+        searchContainer = rootView.findViewById(R.id.searchContainer);
+        searchEditText = rootView.findViewById(R.id.searchEditText);
+        searchButton = rootView.findViewById(R.id.searchButton);
+        clearSearchButton = rootView.findViewById(R.id.clearSearchButton);
+        backButton = rootView.findViewById(R.id.backButton); // מציאת כפתור החזרה החדש
+        nearbyMarketsTitle = rootView.findViewById(R.id.nearbyMarketsTitle); // מציאת הכותרת
+
+        // הגדרת ה-OnClickListener לכפתור הפותח את החיפוש
+        openSearchButton.setOnClickListener(v -> {
+            if (searchContainer.getVisibility() == View.GONE) {
+                searchContainer.setVisibility(View.VISIBLE);
+                searchEditText.requestFocus();
+            } else {
+                searchContainer.setVisibility(View.GONE);
+            }
+        });
+
+        // לחיצה על כפתור החיפוש הפנימי
+        searchButton.setOnClickListener(v -> performSearch());
+
+        // לחיצה על "אישור" במקלדת
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                performSearch();
+                return true;
+            }
+            return false;
+        });
+
+        // לחיצה על כפתור ניקוי החיפוש
+        clearSearchButton.setOnClickListener(v -> {
+            searchEditText.setText("");
+            // אין צורך לקרוא ל-performSearch כאן, ה-TextWatcher יטפל בזה
+        });
+
+        // לחיצה על כפתור החזרה
+        backButton.setOnClickListener(v -> resetToInitialState());
+
+        // TextWatcher לטיפול בשינויים בתיבת הטקסט
+        searchEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // אם יש טקסט בתיבה, נציג את כפתור הניקוי
+                if (s.length() > 0) {
+                    clearSearchButton.setVisibility(View.VISIBLE);
+                } else {
+                    clearSearchButton.setVisibility(View.GONE);
+                    // אם מנקים את הטקסט, נחזור אוטומטית למצב ההתחלתי
+                    if (backButton.getVisibility() == View.VISIBLE) {
+                        resetToInitialState();
+                    }
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
         return rootView;
+    }
+
+    private void performSearch() {
+        String query = searchEditText.getText().toString().trim();
+        if (query.isEmpty()) {
+            Toast.makeText(requireContext(), "אנא הזן מילת חיפוש.", Toast.LENGTH_SHORT).show();
+            resetToInitialState();
+        } else {
+            if (currentUserLocation != null) {
+                mapViewModel.searchLocations(query, currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
+                // כפתור החזרה יהפוך לגלוי בעקבות עדכון הנתונים ב-LiveData
+            } else {
+                Toast.makeText(requireContext(), "לא ניתן לבצע חיפוש ללא מיקום משתמש.", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    // שיטה חדשה לחזרה למצב ההתחלתי
+    private void resetToInitialState() {
+        searchEditText.setText(""); // ניקוי תיבת החיפוש
+        backButton.setVisibility(View.GONE); // הסתרת כפתור החזרה
+        nearbyMarketsTitle.setText("רשימת שווקים קרובים"); // החזרת הכותרת למצב הראשוני
+        mapViewModel.resetMarketsLoaded();
+        if (currentUserLocation != null) {
+            mapViewModel.loadMarkets(currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
+        } else {
+            Log.w("MapFragment", "Last known location is null. Loading markets without user location.");
+            mapViewModel.loadMarkets(0.0, 0.0);
+        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        // 🟢 רענן את דגל הטעינה ב-ViewModel.
-        // זה יאפשר ל-loadMarkets() ב-ViewModel לטעון מחדש את השווקים
-        // בכל פעם שה-Fragment חוזר ל-foreground. אם אתה רוצה טעינה *רק* בפתיחה הראשונה,
-        // הסר את הקריאה ל-resetMarketsLoaded() מכאן.
-        mapViewModel.resetMarketsLoaded();
-        checkLocationPermission(); // טען שווקים מחדש (עם מיקום מעודכן)
+        // מוודאים שהאפליקציה מתחילה תמיד במצב הראשוני
+        resetToInitialState();
+        checkLocationPermission();
     }
 
-    /**
-     * מעדכן את סמני המפה על בסיס רשימת אובייקטי Market החדשה.
-     * חישוב המרחק מתבצע כאן עבור כל סמן.
-     *
-     * @param markets רשימת אובייקטי Market לעדכון.
-     */
-    private void updateMapMarkers(List<Market> markets) {
-        if (mGoogleMap != null && markets != null) {
-            Log.d("MapFragment", "Updating map markers. Number of markets: " + markets.size());
-            mGoogleMap.clear(); // נקה סמנים קודמים
-            markerMarketMap.clear(); // נקה את מפת הסמן-שוק
+    private void updateMapMarkers(List<Object> locations) {
+        if (mGoogleMap != null && locations != null) {
+            Log.d("MapFragment", "Updating map markers. Number of locations: " + locations.size());
+            mGoogleMap.clear();
+            markerObjectMap.clear();
 
-            for (Market market : markets) {
-                LatLng latLng = new LatLng(market.getLatitude(), market.getLongitude());
+            for (Object obj : locations) {
+                if (obj instanceof Market) {
+                    Market market = (Market) obj;
+                    LatLng latLng = new LatLng(market.getLatitude(), market.getLongitude());
 
-                // ✅ חישוב המרחק כאן ב-MapFragment
-                float[] results = new float[1];
-                double calculatedDistance = -1.0; // ערך ברירת מחדל
-                if (currentUserLocation != null) {
-                    Location.distanceBetween(
-                            currentUserLocation.getLatitude(), currentUserLocation.getLongitude(),
-                            market.getLatitude(), market.getLongitude(),
-                            results
-                    );
-                    calculatedDistance = results[0]; // המרחק במטרים
+                    float[] results = new float[1];
+                    double calculatedDistance = -1.0;
+                    if (currentUserLocation != null) {
+                        Location.distanceBetween(
+                                currentUserLocation.getLatitude(), currentUserLocation.getLongitude(),
+                                market.getLatitude(), market.getLongitude(),
+                                results
+                        );
+                        calculatedDistance = results[0];
+                    }
+
+                    MarkerOptions markerOptions = new MarkerOptions()
+                            .position(latLng)
+                            .title(market.getLocation() + " - " + market.getDate());
+
+                    if (calculatedDistance != -1.0) {
+                        markerOptions.snippet("מרחק: " + String.format(Locale.getDefault(), "%.2f ק\"מ", calculatedDistance / 1000.0));
+                    } else {
+                        markerOptions.snippet("מרחק: לא זמין");
+                    }
+
+                    markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.market));
+                    Marker marker = mGoogleMap.addMarker(markerOptions);
+                    if (marker != null) {
+                        markerObjectMap.put(marker, market);
+                    }
                 }
-
-                MarkerOptions markerOptions = new MarkerOptions()
-                        .position(latLng)
-                        .title(market.getLocation() + " - " + market.getDate()); // כותרת הסמן
-
-                // ✅ השתמש במרחק המחושב ישירות ב-snippet
-                if (calculatedDistance != -1.0) {
-                    markerOptions.snippet("מרחק: " + String.format(Locale.getDefault(), "%.2f ק\"מ", calculatedDistance / 1000.0));
-                } else {
-                    markerOptions.snippet("מרחק: לא זמין");
-                }
-
-                markerOptions.icon(BitmapDescriptorFactory.fromResource(R.drawable.market)); // אייקון מותאם אישית
-
-                Marker marker = mGoogleMap.addMarker(markerOptions);
-                if (marker != null) {
-                    markerMarketMap.put(marker, market); // קשר את הסמן לאובייקט Market
+                // ניתן להוסיף כאן לוגיקה גם עבור Farmer אם רוצים להציג אותם על המפה
+            }
+            if (!locations.isEmpty() && currentUserLocation != null) {
+                // נעביר את המפה למיקום המשתמש רק אם יש מיקום
+                LatLng userLatLng = new LatLng(currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 10));
+            } else if (!locations.isEmpty()){
+                // אם אין מיקום משתמש אבל יש שווקים, נעבור לשוק הראשון
+                Object firstLocation = locations.get(0);
+                if (firstLocation instanceof Market) {
+                    Market firstMarket = (Market) firstLocation;
+                    LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
+                    mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 12));
                 }
             }
-            // אופציונלי: הזז מצלמה לשוק הראשון ברשימה (הקרוב ביותר/המוקדם ביותר)
-            // שים לב: אם השווקים לא ממוינים לפי מרחק מהשרת, זה לא בהכרח השוק הקרוב ביותר.
-            if (!markets.isEmpty()) {
-                Market firstMarket = markets.get(0);
-                LatLng firstMarketPos = new LatLng(firstMarket.getLatitude(), firstMarket.getLongitude());
-                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(firstMarketPos, 12));
-            }
-        } else {
-            Log.d("MapFragment", "Cannot update map markers. mGoogleMap is null: " + (mGoogleMap == null) + ", markets list is null: " + (markets == null));
         }
     }
 
-    /**
-     * בודק הרשאות מיקום. אם ההרשאה קיימת, מפעיל את המיקום שלי. אם לא, מבקש אותה.
-     */
     private void checkLocationPermission() {
         if (ContextCompat.checkSelfPermission(requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // אם אין הרשאה, בקש אותה
             ActivityCompat.requestPermissions(requireActivity(),
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         } else {
-            // אם יש הרשאה, הפעל את המיקום שלי וטען את השווקים
             enableMyLocationAndLoadMarkets();
         }
     }
@@ -269,38 +349,32 @@ public class MapFragment extends Fragment implements
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // ההרשאה ניתנה
                 enableMyLocationAndLoadMarkets();
             } else {
-                // ההרשאה נדחתה. טען שווקים ללא מיקום משתמש (ימוינו רק לפי תאריך)
                 Toast.makeText(requireContext(), "נדרשת הרשאת מיקום כדי להציג שווקים קרובים. מציג שווקים כלליים.", Toast.LENGTH_LONG).show();
-                mapViewModel.loadMarkets(0.0, 0.0); // שלח 0,0 אם אין מיקום
+                mapViewModel.loadMarkets(0.0, 0.0);
             }
         }
     }
 
-    /**
-     * מפעיל את שכבת המיקום שלי במפה ומפעיל את טעינת השווקים.
-     * נדרשת הרשאת ACCESS_FINE_LOCATION.
-     */
-    @SuppressLint("MissingPermission") // הוסף את זה כי setMyLocationEnabled דורש בדיקת הרשאה
+    @SuppressLint("MissingPermission")
     private void enableMyLocationAndLoadMarkets() {
         if (mGoogleMap != null && ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            mGoogleMap.setMyLocationEnabled(true); // הצג את כפתור המיקום שלי
+            mGoogleMap.setMyLocationEnabled(true);
 
             fusedLocationClient.getLastLocation()
                     .addOnSuccessListener(requireActivity(), new OnSuccessListener<Location>() {
                         @Override
                         public void onSuccess(Location location) {
                             if (location != null) {
-                                currentUserLocation = location; // ✅ שמור את מיקום המשתמש
+                                currentUserLocation = location;
                                 LatLng userLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 10)); // הזז מצלמה למיקום המשתמש
-                                mapViewModel.loadMarkets(location.getLatitude(), location.getLongitude()); // טען שווקים עם מיקום המשתמש
+                                mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 10));
+                                mapViewModel.loadMarkets(location.getLatitude(), location.getLongitude());
                             } else {
                                 Log.w("MapFragment", "Last known location is null. Loading markets without user location.");
                                 Toast.makeText(requireContext(), "לא ניתן לקבל מיקום מדויק. מציג שווקים כלליים.", Toast.LENGTH_LONG).show();
-                                mapViewModel.loadMarkets(0.0, 0.0); // טען שווקים ללא מיקום משתמש
+                                mapViewModel.loadMarkets(0.0, 0.0);
                             }
                         }
                     });
@@ -308,46 +382,48 @@ public class MapFragment extends Fragment implements
     }
 
     @Override
-    public void onMarketClick(Market market) {
-        Log.d("MapFragment", "List item clicked: " + market.getLocation() + ", " + market.getDate());
+    public void onLocationClick(Object location) {
+        Log.d("MapFragment", "List item clicked: " + location.toString());
         if (mGoogleMap != null) {
-            LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
-            mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED); // סגור את הרשימה לאחר לחיצה
+            LatLng pos = null;
+            if (location instanceof Market) {
+                Market market = (Market) location;
+                pos = new LatLng(market.getLatitude(), market.getLongitude());
+            } else if (location instanceof Farmer) {
+                Farmer farmer = (Farmer) location;
+                pos = new LatLng(farmer.getLatitude(), farmer.getLongitude());
+            }
+
+            if (pos != null) {
+                mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+            }
         }
     }
-    // משתנה לשמירת הסמן האחרון שנלחץ, כדי שנוכל לשנות אותו בחזרה
-    private Marker lastClickedMarker = null;
 
-    // במקום לשנות גוון, נשתמש בשני קבצי אייקון - רגיל ומוגדל.
-// ודא שהוספת את market_selected.png לתיקיית drawable.
+    private Marker lastClickedMarker = null;
     private int normalMarketIcon = R.drawable.market;
     private int selectedMarketIcon = R.drawable.ic_selected_market;
 
     @SuppressLint("NewApi")
     @Override
     public boolean onMarkerClick(@NonNull Marker marker) {
-        Market market = markerMarketMap.get(marker);
-        if (market != null) {
+        Object obj = markerObjectMap.get(marker);
+        if (obj instanceof Market) {
+            Market market = (Market) obj;
             Log.d("MapFragment", "Marker clicked: " + market.getLocation());
 
-            // 1. החזרת האייקון של הסמן הקודם למצבו הרגיל
             if (lastClickedMarker != null && !lastClickedMarker.equals(marker)) {
                 lastClickedMarker.setIcon(BitmapDescriptorFactory.fromResource(normalMarketIcon));
             }
 
-            // 2. שינוי האייקון של הסמן הנוכחי לאייקון המוגדל
             marker.setIcon(BitmapDescriptorFactory.fromResource(selectedMarketIcon));
-            lastClickedMarker = marker; // עדכון הסמן האחרון שנלחץ
+            lastClickedMarker = marker;
 
-            // 3. אנימציית מצלמה חלקה למיקום הסמן
             LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
             mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
-
-            // סגירת ה-BottomSheet כפי שהיה
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-            // 4. מעבר לפעילות (Activity) הבאה
             Intent intent = new Intent(requireContext(), MarketProfileActivity.class);
             intent.putExtra("location", market.getLocation());
             if (market.getDate() != null) {
