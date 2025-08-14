@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -20,7 +21,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.16.176:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -390,4 +391,20 @@ public class Service {
         return get(path);
     }
 
+    public static String search(String query, double userLat, double userLon) throws IOException {
+        try {
+            // זה התיקון העיקרי: מקודדים רק את מילת החיפוש
+            String encodedQuery = URLEncoder.encode(query, "UTF-8");
+
+            // בונים את הנתיב עם הפרמטרים, ללא קידוד של המספרים
+            String path = "markets/search?query=" + encodedQuery + "&userLat=" + userLat + "&userLon=" + userLon;
+
+            // הדפסה ליומן לצורך בדיקה
+            System.out.println("Final URL being sent: " +spec + path);
+
+            return get(path);
+        } catch (UnsupportedEncodingException e) {
+            throw new IOException("Error encoding search query", e);
+        }
+    }
 }

@@ -17,6 +17,11 @@ public class Farmer extends User{
         this.longitude = longitude;
         this.notificationRadius = notificationRadius;
     }
+    public Farmer(String name, String email) {
+        super(name, email, null, null, null);
+    }
+
+
 
     public Farmer(String name, String email, String password, String phone, String address) {
         super(name, email, password, phone, address);

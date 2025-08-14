@@ -72,8 +72,8 @@ public class  MarketAdapter extends RecyclerView.Adapter<MarketAdapter.MarketVie
 
         public MarketViewHolder(@NonNull View itemView) {
             super(itemView);
-            locationText = itemView.findViewById(R.id.locationText);
-            dateText = itemView.findViewById(R.id.dateText);
+            locationText = itemView.findViewById(R.id.marketName);
+            dateText = itemView.findViewById(R.id.marketDate);
         }
     }
 }
