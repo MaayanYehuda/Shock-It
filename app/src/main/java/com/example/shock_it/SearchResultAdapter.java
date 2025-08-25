@@ -15,15 +15,19 @@ import classes.Farmer;
 import classes.Market;
 
 public class SearchResultAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    public interface OnSearchResultClickListener {
+        void onMarketClick(Market market);
+        void onFarmerClick(Farmer farmer); // 🌟 הוספת מתודת הלחיצה על חקלאי
+    }
 
     private static final String TAG = "SearchResultAdapter";
     private static final int VIEW_TYPE_MARKET = 0;
     private static final int VIEW_TYPE_FARMER = 1;
 
     private final List<Object> results;
-    private final MarketAdapter.OnMarketClickListener listener;
+    private final OnSearchResultClickListener listener;
 
-    public SearchResultAdapter(List<Object> results, MarketAdapter.OnMarketClickListener listener) {
+    public SearchResultAdapter(List<Object> results, OnSearchResultClickListener listener) {
         this.results = results;
         this.listener = listener;
     }
@@ -112,7 +116,13 @@ public class SearchResultAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             if (farmerHolder.itemView != null) {
                 farmerHolder.itemView.setOnClickListener(v -> {
-                    // לוגיקה לפתיחת פרופיל חקלאי
+
+                    if (listener instanceof OnSearchResultClickListener) {
+
+                        Log.d(TAG, "Farmer row clicked. Triggering onFarmerClick for: " + farmer.getEmail());
+
+                        listener.onFarmerClick(farmer);
+                    }
                 });
             }
         }

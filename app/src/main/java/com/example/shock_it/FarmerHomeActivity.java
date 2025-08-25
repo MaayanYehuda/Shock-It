@@ -65,36 +65,42 @@ public class FarmerHomeActivity extends AppCompatActivity implements NavigationV
     // This method handles clicks on items in the Navigation Drawer
     @Override
     public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId(); // Get the ID of the clicked item
+        int id = item.getItemId();
 
-        // --- Start of Changes Here ---
-        // Log to see if this method is called and what item is clicked
-        Log.d("DrawerDebug", "Clicked item ID: " + id);
-        try {
-            Log.d("DrawerDebug", "Clicked item name: " + getResources().getResourceEntryName(id));
-        } catch (android.content.res.Resources.NotFoundException e) {
-            Log.e("DrawerDebug", "Resource name not found for ID: " + id);
-        }
-        Log.d("DrawerDebug", "Expected Logout ID (R.id.nav_logout): " + R.id.nav_logout);
-
-
-        if (id == R.id.nav_logout) { // <--- **CRITICAL: You MUST check the ID here!**
-            Log.d("DrawerDebug", "Logout item detected! Calling logoutUser().");
+        // 1. טיפול בהתנתקות (Logout)
+        if (id == R.id.nav_logout) {
             logoutUser();
             binding.drawerLayout.closeDrawers();
-            return true; // Consume the event, don't let NavigationUI handle it
-        } else {
-            // If it's not the logout item, let the Navigation Component handle it.
-            // This will navigate to the fragments defined in your mobile_navigation.xml
-            Log.d("DrawerDebug", "Clicked item is NOT nav_logout. Letting Navigation Component handle it.");
-            boolean handled = NavigationUI.onNavDestinationSelected(item, navController);
-            if (handled) {
-                binding.drawerLayout.closeDrawers(); // Close the drawer if Navigation Component successfully handled navigation
-            }
-            Log.d("DrawerDebug", "NavigationUI handled: " + handled);
-            return handled; // Return whether NavigationUI handled it
+            return true; // נטפל באירוע
         }
-        // --- End of Changes Here ---
+
+        // 2. טיפול ביעדים המרכזיים באמצעות Actions גלובליים
+        boolean handled = true;
+
+        if (id == R.id.nav_map) {
+            // ניווט ל-Map (ניקוי המחסנית)
+            navController.navigate(R.id.action_global_nav_map);
+
+        } else if (id == R.id.farmerProfile) {
+            // ניווט ל-Farmer Profile (Launch Single Top)
+            navController.navigate(R.id.action_global_farmerProfile);
+
+        } else if (id == R.id.nav_add_market) {
+            // ניווט ל-Add Market (Launch Single Top)
+            navController.navigate(R.id.action_global_nav_add_market);
+
+        } else {
+            // אם המזהה לא מוכר, נחזיר false (לדוגמה, אם יש פריט לא מנוהל)
+            handled = false;
+        }
+
+        // אם הניווט טופל, נסגור את ה-Drawer
+        if (handled) {
+            binding.drawerLayout.closeDrawers();
+        }
+
+        // אם לא טופל ע"י הלוגיקה המפורשת, נשתמש ב-NavigationUI (למקרה של פריט לא מוגדר)
+        return handled || NavigationUI.onNavDestinationSelected(item, navController);
     }
 
     private void logoutUser() {

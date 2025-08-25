@@ -2,6 +2,7 @@ package com.example.shock_it.ui.map.map;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -15,6 +16,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -24,10 +26,12 @@ import android.view.inputmethod.EditorInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.activity.OnBackPressedCallback; // 🌟 הוספת אימפורט ל-OnBackPressedCallback
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -77,7 +81,29 @@ public class MapFragment extends Fragment implements
     private ImageButton searchButton;
     private ImageButton clearSearchButton;
     private ImageButton backButton;
-    private TextView nearbyMarketsTitle; // הוספנו את ה-TextView כדי שנוכל לשנות את הטקסט שלו
+    private TextView nearbyMarketsTitle;
+
+    // 🌟 דגל למניעת לולאה אינסופית בעת איפוס שדה החיפוש
+    private boolean isResettingSearch = false;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // 🌟 טיפול בכפתור החזור של אנדרואיד
+        requireActivity().getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                // בדיקה אם המשתמש נמצא במצב חיפוש
+                if (backButton != null && backButton.getVisibility() == View.VISIBLE) {
+                    resetToInitialState(); // איפוס למצב רגיל
+                } else {
+                    // אם לא במצב חיפוש, חזור אחורה כרגיל ב-Navigation Stack
+                    NavHostFragment.findNavController(MapFragment.this).navigateUp();
+                }
+            }
+        });
+    }
 
     @Nullable
     @Override
@@ -88,39 +114,38 @@ public class MapFragment extends Fragment implements
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity());
         mapViewModel = new ViewModelProvider(this).get(MapViewModel.class);
 
-        // מציאת הרכיבים מה-XML
+        // UI Initialization (RecyclerView, Adapters, LiveData Observers)
         recyclerView = rootView.findViewById(R.id.marketsView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         locationAdapter = new LocationAdapter(new ArrayList<>(), this);
         recyclerView.setAdapter(locationAdapter);
 
-        // הגדרת קו מפריד ב-RecyclerView
+        // Divider
         DividerItemDecoration divider = new DividerItemDecoration(requireContext(), DividerItemDecoration.VERTICAL);
         ShapeDrawable dividerDrawable = new ShapeDrawable();
         dividerDrawable.setIntrinsicHeight(1);
         dividerDrawable.getPaint().setColor(Color.parseColor("#DDDDDD"));
+
         divider.setDrawable(dividerDrawable);
+
         recyclerView.addItemDecoration(divider);
 
-        // צפייה בשינויים ברשימת המיקומים (שווקים/חקלאים)
+        // LiveData Observers
         mapViewModel.getLocationsLiveData().observe(getViewLifecycleOwner(), locations -> {
-            Log.d("MapFragment", "ViewModel locations updated. Updating UI components. Locations count: " + (locations != null ? locations.size() : 0));
+            Log.d("MapFragment", "ViewModel locations updated. Count: " + (locations != null ? locations.size() : 0));
             locationAdapter.setLocationList(locations);
-            Log.d("MapFragment", "RecyclerView adapter updated and notified.");
             updateMapMarkers(locations);
-            // אם הרשימה מעודכנת בעקבות חיפוש, נציג את כפתור החזרה.
-            if (!searchEditText.getText().toString().isEmpty()) {
+            if (searchEditText != null && !searchEditText.getText().toString().isEmpty()) {
                 backButton.setVisibility(View.VISIBLE);
-                nearbyMarketsTitle.setText("תוצאות חיפוש"); // שינוי הכותרת
+                nearbyMarketsTitle.setText("תוצאות חיפוש");
             } else {
-                // אחרת, נסתיר אותו
                 backButton.setVisibility(View.GONE);
-                nearbyMarketsTitle.setText("רשימת שווקים קרובים"); // החזרת הכותרת למצב הראשוני
+                nearbyMarketsTitle.setText("רשימת שווקים קרובים");
             }
         });
 
         mapViewModel.getIsLoadingLiveData().observe(getViewLifecycleOwner(), isLoading -> {
-            // טיפול במצב טעינה
+            // Handle loading state
         });
 
         mapViewModel.getErrorMessageLiveData().observe(getViewLifecycleOwner(), errorMessage -> {
@@ -129,34 +154,44 @@ public class MapFragment extends Fragment implements
             }
         });
 
-        // הגדרת המפה
+        // ----------------------------------------------------
+        // ניהול SupportMapFragment
+        // ----------------------------------------------------
         SupportMapFragment mapFragment = (SupportMapFragment)
-                getChildFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getMapAsync(googleMap -> {
-                mGoogleMap = googleMap;
-                mGoogleMap.setOnMarkerClickListener(this);
+                getChildFragmentManager().findFragmentById(R.id.map_container);
 
-                try {
-                    boolean success = googleMap.setMapStyle(
-                            MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.map_style));
-                    if (!success) {
-                        Log.e("MapStyle", "Style parsing failed.");
-                    }
-                } catch (Resources.NotFoundException e) {
-                    Log.e("MapStyle", "Can't find style. Error: ", e);
-                }
-                checkLocationPermission();
-
-                List<Object> currentLocations = mapViewModel.getLocationsLiveData().getValue();
-                if (currentLocations != null && !currentLocations.isEmpty()) {
-                    Log.d("MapFragment", "Map ready, updating with existing ViewModel data.");
-                    updateMapMarkers(currentLocations);
-                }
-            });
+        if (mapFragment == null) {
+            mapFragment = SupportMapFragment.newInstance();
+            getChildFragmentManager().beginTransaction()
+                    .replace(R.id.map_container, mapFragment)
+                    .commit();
         }
 
-        // הגדרת ה-BottomSheet
+        mapFragment.getMapAsync(googleMap -> {
+            mGoogleMap = googleMap;
+            mGoogleMap.setOnMarkerClickListener(this);
+
+            try {
+                boolean success = googleMap.setMapStyle(
+                        MapStyleOptions.loadRawResourceStyle(getContext(), R.raw.map_style));
+                if (!success) {
+                    Log.e("MapStyle", "Style parsing failed.");
+                }
+            } catch (Resources.NotFoundException e) {
+                Log.e("MapStyle", "Can't find style. Error: ", e);
+            }
+
+            checkLocationPermission();
+
+            List<Object> currentLocations = mapViewModel.getLocationsLiveData().getValue();
+            if (currentLocations != null && !currentLocations.isEmpty()) {
+                Log.d("MapFragment", "Map ready, updating with existing ViewModel data.");
+                updateMapMarkers(currentLocations);
+            }
+        });
+        // ----------------------------------------------------
+
+        // BottomSheet
         View bottomSheet = rootView.findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
         bottomSheetBehavior.setDraggable(true);
@@ -164,7 +199,7 @@ public class MapFragment extends Fragment implements
         bottomSheetBehavior.setHideable(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
-        // הגדרת כפתור ההודעות
+        // Messages Button
         FloatingActionButton messagesButton = rootView.findViewById(R.id.messages);
         if (messagesButton != null) {
             messagesButton.setOnClickListener(v -> {
@@ -174,29 +209,36 @@ public class MapFragment extends Fragment implements
             });
         }
 
-        // איתור רכיבי החיפוש עם ה-IDs הנכונים מה-XML
+        // Search Components
         openSearchButton = rootView.findViewById(R.id.openSearchButton);
         searchContainer = rootView.findViewById(R.id.searchContainer);
         searchEditText = rootView.findViewById(R.id.searchEditText);
         searchButton = rootView.findViewById(R.id.searchButton);
         clearSearchButton = rootView.findViewById(R.id.clearSearchButton);
-        backButton = rootView.findViewById(R.id.backButton); // מציאת כפתור החזרה החדש
-        nearbyMarketsTitle = rootView.findViewById(R.id.nearbyMarketsTitle); // מציאת הכותרת
+        backButton = rootView.findViewById(R.id.backButton);
+        nearbyMarketsTitle = rootView.findViewById(R.id.nearbyMarketsTitle);
 
-        // הגדרת ה-OnClickListener לכפתור הפותח את החיפוש
         openSearchButton.setOnClickListener(v -> {
             if (searchContainer.getVisibility() == View.GONE) {
                 searchContainer.setVisibility(View.VISIBLE);
                 searchEditText.requestFocus();
+                // פתיחת המקלדת
+                InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT);
+                }
             } else {
                 searchContainer.setVisibility(View.GONE);
+                // סגירת המקלדת
+                InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null && requireActivity().getCurrentFocus() != null) {
+                    imm.hideSoftInputFromWindow(requireActivity().getCurrentFocus().getWindowToken(), 0);
+                }
             }
         });
 
-        // לחיצה על כפתור החיפוש הפנימי
         searchButton.setOnClickListener(v -> performSearch());
 
-        // לחיצה על "אישור" במקלדת
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch();
@@ -205,34 +247,31 @@ public class MapFragment extends Fragment implements
             return false;
         });
 
-        // לחיצה על כפתור ניקוי החיפוש
         clearSearchButton.setOnClickListener(v -> {
             searchEditText.setText("");
-            // אין צורך לקרוא ל-performSearch כאן, ה-TextWatcher יטפל בזה
         });
 
-        // לחיצה על כפתור החזרה
         backButton.setOnClickListener(v -> resetToInitialState());
 
-        // TextWatcher לטיפול בשינויים בתיבת הטקסט
+        // 🌟 המאזין TextWatcher המתוקן
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // אם יש טקסט בתיבה, נציג את כפתור הניקוי
+                // אם אנחנו בעיצומו של איפוס, התעלם מהשינוי כדי למנוע לולאה אינסופית
+                if (isResettingSearch) {
+                    return;
+                }
+
                 if (s.length() > 0) {
                     clearSearchButton.setVisibility(View.VISIBLE);
                 } else {
                     clearSearchButton.setVisibility(View.GONE);
-                    // אם מנקים את הטקסט, נחזור אוטומטית למצב ההתחלתי
-                    if (backButton.getVisibility() == View.VISIBLE) {
-                        resetToInitialState();
-                    }
+                    // ❌ הלוגיקה ל-resetToInitialState() הוסרה מכאן - היא מטופלת עכשיו רק על ידי backButton או כפתור החזור של אנדרואיד
                 }
             }
-
             @Override
             public void afterTextChanged(Editable s) {}
         });
@@ -241,25 +280,43 @@ public class MapFragment extends Fragment implements
     }
 
     private void performSearch() {
+        // הסתרת המקלדת
+        InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && requireActivity().getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(requireActivity().getCurrentFocus().getWindowToken(), 0);
+        }
+
         String query = searchEditText.getText().toString().trim();
         if (query.isEmpty()) {
             Toast.makeText(requireContext(), "אנא הזן מילת חיפוש.", Toast.LENGTH_SHORT).show();
+            // 🌟 קריאה ל-resetToInitialState() בחיפוש ריק מבטיחה חזרה למצב הראשוני
             resetToInitialState();
         } else {
             if (currentUserLocation != null) {
                 mapViewModel.searchLocations(query, currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
-                // כפתור החזרה יהפוך לגלוי בעקבות עדכון הנתונים ב-LiveData
             } else {
                 Toast.makeText(requireContext(), "לא ניתן לבצע חיפוש ללא מיקום משתמש.", Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    // שיטה חדשה לחזרה למצב ההתחלתי
     private void resetToInitialState() {
-        searchEditText.setText(""); // ניקוי תיבת החיפוש
-        backButton.setVisibility(View.GONE); // הסתרת כפתור החזרה
-        nearbyMarketsTitle.setText("רשימת שווקים קרובים"); // החזרת הכותרת למצב הראשוני
+        // 🌟 הגדרת הדגל ל-TRUE לפני הקריאה ל-setText כדי למנוע לולאה אינסופית
+        isResettingSearch = true;
+
+        searchEditText.setText("");
+
+        // 🌟 איפוס הדגל ל-FALSE מיד לאחר מכן
+        isResettingSearch = false;
+
+        // הסתרת המקלדת
+        InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && requireActivity().getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(requireActivity().getCurrentFocus().getWindowToken(), 0);
+        }
+
+        backButton.setVisibility(View.GONE);
+        nearbyMarketsTitle.setText("רשימת שווקים קרובים");
         mapViewModel.resetMarketsLoaded();
         if (currentUserLocation != null) {
             mapViewModel.loadMarkets(currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
@@ -274,7 +331,6 @@ public class MapFragment extends Fragment implements
         super.onResume();
         // מוודאים שהאפליקציה מתחילה תמיד במצב הראשוני
         resetToInitialState();
-        checkLocationPermission();
     }
 
     private void updateMapMarkers(List<Object> locations) {
@@ -315,14 +371,11 @@ public class MapFragment extends Fragment implements
                         markerObjectMap.put(marker, market);
                     }
                 }
-                // ניתן להוסיף כאן לוגיקה גם עבור Farmer אם רוצים להציג אותם על המפה
             }
             if (!locations.isEmpty() && currentUserLocation != null) {
-                // נעביר את המפה למיקום המשתמש רק אם יש מיקום
                 LatLng userLatLng = new LatLng(currentUserLocation.getLatitude(), currentUserLocation.getLongitude());
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(userLatLng, 10));
             } else if (!locations.isEmpty()){
-                // אם אין מיקום משתמש אבל יש שווקים, נעבור לשוק הראשון
                 Object firstLocation = locations.get(0);
                 if (firstLocation instanceof Market) {
                     Market firstMarket = (Market) firstLocation;
@@ -384,20 +437,19 @@ public class MapFragment extends Fragment implements
     @Override
     public void onLocationClick(Object location) {
         Log.d("MapFragment", "List item clicked: " + location.toString());
-        if (mGoogleMap != null) {
-            LatLng pos = null;
-            if (location instanceof Market) {
-                Market market = (Market) location;
-                pos = new LatLng(market.getLatitude(), market.getLongitude());
-            } else if (location instanceof Farmer) {
-                Farmer farmer = (Farmer) location;
-                pos = new LatLng(farmer.getLatitude(), farmer.getLongitude());
-            }
 
-            if (pos != null) {
+        if (location instanceof Market) {
+            Market market = (Market) location;
+
+            if (mGoogleMap != null) {
+                LatLng pos = new LatLng(market.getLatitude(), market.getLongitude());
                 mGoogleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(pos, 15));
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
             }
+
+        } else if (location instanceof Farmer) {
+            Farmer farmer = (Farmer) location;
+            navigateToFarmerProfile(farmer);
         }
     }
 
@@ -439,4 +491,33 @@ public class MapFragment extends Fragment implements
             return false;
         }
     }
+
+    private void navigateToFarmerProfile(Farmer farmer) {
+        Log.d("MapFragment", "Navigating to farmer profile fragment. Email: " + farmer.getEmail());
+
+        // הסתרת המקלדת
+        InputMethodManager imm = (InputMethodManager) requireActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && requireActivity().getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(requireActivity().getCurrentFocus().getWindowToken(), 0);
+        }
+
+        // הכנת הנתונים (Bundle)
+        Bundle args = new Bundle();
+        args.putString("farmer_email_key", farmer.getEmail());
+
+        // ביצוע הניווט באמצעות Navigation Component
+        try {
+            NavHostFragment.findNavController(this).navigate(
+                    R.id.action_global_farmerProfile,
+                    args
+            );
+            Log.d("MapFragment", "Successfully navigated using action ID.");
+            Toast.makeText(requireContext(), "טוען פרופיל של: " + farmer.getEmail(), Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Log.e("MapFragment", "Navigation failed: " + e.getMessage());
+            Toast.makeText(requireContext(), "שגיאת ניווט! ודא שהאקשן מוגדר בגרף הניווט.", Toast.LENGTH_LONG).show();
+        }
+    }
+
 }

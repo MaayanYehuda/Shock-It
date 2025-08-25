@@ -12,6 +12,8 @@ import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import androidx.activity.OnBackPressedCallback;
+import androidx.fragment.app.FragmentManager;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
@@ -25,12 +27,15 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.shock_it.ui.map.MarketAdapter;
 import com.example.shock_it.SearchResultAdapter;
+import com.example.shock_it.ui.map.farmerProfile.farmerProfile;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.*;
@@ -58,7 +63,7 @@ import classes.Market;
 import services.Service;
 
 public class MainActivity extends AppCompatActivity implements
-        MarketAdapter.OnMarketClickListener,
+        SearchResultAdapter.OnSearchResultClickListener,
         GoogleMap.OnMarkerClickListener {
 
     private GoogleMap mGoogleMap;
@@ -190,10 +195,47 @@ public class MainActivity extends AppCompatActivity implements
                     Log.e("MapStyle", "Can't find style. Error: ", e);
                 }
                 checkLocationPermission();
-                // The initial market load will be called after location is retrieved
-                // We'll use the initial markets list to populate the map and recycler view
+
             });
         }
+        OnBackPressedCallback callback = new OnBackPressedCallback(true /* enabled */) {
+            @Override
+            public void handleOnBackPressed() {
+                FragmentManager fragmentManager = getSupportFragmentManager();
+
+                // 1. בודקים אם יש פרגמנט במחסנית
+                if (fragmentManager.getBackStackEntryCount() > 0) {
+                    // אם יש: מאפשרים התנהגות חזרה רגילה (הוצאת הפרגמנט)
+                    fragmentManager.popBackStack();
+
+                    // 2. מחזירים את הנראות של הרכיבים הראשיים
+                    View mapContainer = findViewById(R.id.map_container);
+                    View fragmentContainer = findViewById(R.id.fragment_container_farmer_profile);
+                    FloatingActionButton fab = findViewById(R.id.farmerButton);
+                    View bottomSheetContent = findViewById(R.id.bottom_sheet);
+
+                    if (mapContainer != null) mapContainer.setVisibility(View.VISIBLE);
+                    if (fab != null) fab.setVisibility(View.VISIBLE);
+
+                    // מחזירים את ה-BottomSheet למצב COLLAPSED ומונעים הסתרה
+                    if (bottomSheetContent != null && bottomSheetBehavior != null) {
+                        bottomSheetContent.setVisibility(View.VISIBLE);
+                        bottomSheetBehavior.setHideable(false); // חזרה למצב המקורי
+                        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    }
+
+                    // מסתירים את קונטיינר הפרגמנט
+                    if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
+
+                } else {
+                    // אם אין: מאפשרים לאפליקציה לצאת
+                    setEnabled(false);
+                    onBackPressed();
+                    setEnabled(true); // מחזירים מצב כדי שה-Callback יעבוד שוב בכניסה הבאה
+                }
+            }
+        };
+        getOnBackPressedDispatcher().addCallback(this, callback);
     }
 
     private void restoreInitialMarkets() {
@@ -468,5 +510,64 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("MainActivity", "Market object not found for clicked marker.");
         }
         return true;
+    }
+
+
+    @Override
+    public void onFarmerClick(Farmer farmer) {
+        Log.d("MainActivity", "Farmer clicked. Navigating to farmer profile fragment locally. Email: " + farmer.getEmail());
+
+        // 1. הסתרת המקלדת
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null && getCurrentFocus() != null) {
+            imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+        }
+
+        // 2. הכנת ה-Fragment וה-Bundle
+        farmerProfile farmerProfileFragment = new farmerProfile();
+        Bundle args = new Bundle();
+        args.putString("farmer_email_key", farmer.getEmail());
+        farmerProfileFragment.setArguments(args);
+
+        // 3. שינוי נראות הרכיבים
+        Log.d("MainActivity", "Hiding main UI elements...");
+
+        View mapContainer = findViewById(R.id.map_container);
+        View fragmentContainer = findViewById(R.id.fragment_container_farmer_profile);
+        FloatingActionButton fab = findViewById(R.id.farmerButton);
+        View bottomSheetContent = findViewById(R.id.bottom_sheet);
+
+        // הסתרת המפה
+        if (mapContainer != null) mapContainer.setVisibility(View.GONE);
+
+        // הסתרת הכפתור הצף
+        if (fab != null) fab.setVisibility(View.GONE);
+
+        // הסתרת ה-BottomSheet (שמכיל את ה-RecyclerView ואת סרגל החיפוש)
+        if (bottomSheetContent != null && bottomSheetBehavior != null) {
+            bottomSheetContent.setVisibility(View.GONE);
+            bottomSheetBehavior.setHideable(true);
+            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+        }
+
+        // 4. הצגת ה-Container וביצוע החלפת ה-Fragment
+        if (fragmentContainer != null) {
+            fragmentContainer.setVisibility(View.VISIBLE);
+            Log.d("MainActivity", "Farmer profile container set to VISIBLE.");
+
+            // ביצוע החלפת ה-Fragment
+            FragmentManager fragmentManager = getSupportFragmentManager();
+            FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
+            fragmentTransaction.replace(R.id.fragment_container_farmer_profile, farmerProfileFragment);
+            fragmentTransaction.addToBackStack("farmerProfile");
+            fragmentTransaction.commit();
+
+            Toast.makeText(this, "טוען פרופיל של: " + farmer.getEmail(), Toast.LENGTH_SHORT).show();
+            Log.d("MainActivity", "Fragment transaction committed.");
+
+        } else {
+            Log.e("MainActivity", "FATAL ERROR: fragment_container_farmer_profile not found! Check XML.");
+            Toast.makeText(MainActivity.this, "שגיאה: לא נמצא קונטיינר להצגת הפרופיל. הוסף ל-XML.", Toast.LENGTH_LONG).show();
+        }
     }
 }

@@ -19,6 +19,7 @@ public class  MarketAdapter extends RecyclerView.Adapter<MarketAdapter.MarketVie
     }
 
     public interface OnMarketClickListener {
+
         void onMarketClick(Market market);
     }
     private OnMarketClickListener listener;
