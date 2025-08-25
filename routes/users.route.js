@@ -176,7 +176,7 @@ router.put("/update", async (req, res) => {
     !name ||
     !phone ||
     !address ||
-    !notificationRadius ||
+    notificationRadius === undefined ||
     !longitude ||
     !latitude
   ) {
