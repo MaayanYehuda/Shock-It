@@ -139,7 +139,7 @@ router.post("/addMarket", async (req, res) => {
 
     // בדיקה אם שוק עם אותו תאריך ומיקום כבר קיים (אופציונלי, אם אתה רוצה לאפשר רק שוק אחד ליום במיקום נתון)
     const checkResult = await session.run(
-      "MATCH (m:Market {date: $date, location: $location}) RETURN m",
+      "MATCH (m:Market {date: $date, location: $location})  RETURN m",
       { date, location }
     );
 

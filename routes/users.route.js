@@ -239,4 +239,41 @@ router.get("/findRecomendations", async (req, res) => {
     res.status(500).send("Server error finding recommendations");
   }
 });
+
+router.get("/invitations/count", async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(400).json({ error: "Missing user email" });
+  }
+
+  let session;
+  try {
+    session = driver.session();
+
+    // שאילתת Cypher לספירת הזמנות INVITE ממתינות עבור המשתמש
+    // השאילתה מוצאת קשרי INVITE המגיעים אל המשתמש ומסננת רק את אלו עם participante = false
+    const cypherQuery = `
+            MATCH (m:Market)-[i:INVITE]->(u:Person {email: $email})
+            WHERE i.participate = false
+            RETURN count(i) AS pendingInvitationsCount
+        `;
+
+    const result = await session.run(cypherQuery, { email });
+
+    // קבלת התוצאה
+    const pendingInvitationsCount = result.records[0].get(
+      "pendingInvitationsCount"
+    ).low;
+    console.log("Pending invitations count:", pendingInvitationsCount);
+    res.json({ count: pendingInvitationsCount });
+  } catch (error) {
+    console.error("Error fetching invitation count:", error);
+    res.status(500).send("Server error fetching invitation count");
+  } finally {
+    if (session) {
+      session.close();
+    }
+  }
+});
 module.exports = router;
