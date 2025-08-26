@@ -28,6 +28,9 @@ public class MapViewModel extends AndroidViewModel {
     private MutableLiveData<Boolean> isLoadingLiveData;
     private MutableLiveData<String> errorMessageLiveData;
 
+    // 🌟 New LiveData to hold the pending invites count
+    private MutableLiveData<Integer> pendingInvitesCountLiveData;
+
     private boolean isLocationsLoaded = false;
 
     public MapViewModel(Application application) {
@@ -35,6 +38,9 @@ public class MapViewModel extends AndroidViewModel {
         locationsLiveData = new MutableLiveData<>();
         isLoadingLiveData = new MutableLiveData<>();
         errorMessageLiveData = new MutableLiveData<>();
+        // 🌟 Initialize the new LiveData
+        pendingInvitesCountLiveData = new MutableLiveData<>();
+        pendingInvitesCountLiveData.setValue(0); // Set initial value to 0
     }
 
     public LiveData<List<Object>> getLocationsLiveData() {
@@ -49,6 +55,32 @@ public class MapViewModel extends AndroidViewModel {
         return errorMessageLiveData;
     }
 
+    // 🌟 Public getter for the new LiveData
+    public LiveData<Integer> getPendingInvitesCountLiveData() {
+        return pendingInvitesCountLiveData;
+    }
+
+    /**
+     * Loads the count of pending invitations for a specific user.
+     * This method runs on a background thread to avoid blocking the UI.
+     * @param userEmail The email of the user whose invitations to count.
+     */
+    public void loadPendingInvitesCount(String userEmail) {
+        new Thread(() -> {
+            try {
+                int count = Service.getPendingInvitesCount(userEmail);
+                Log.d("MapViewModel", "Pending invites count fetched: " + count);
+                // 🌟 Update the LiveData with the new count
+                pendingInvitesCountLiveData.postValue(count);
+            } catch (IOException | JSONException e) {
+                Log.e("MapViewModel", "Error fetching pending invites count: " + e.getMessage(), e);
+                // 🌟 Handle error: You might want to log this but not show an error to the user
+                // as it's a non-critical feature. For now, we'll set the count to 0.
+                pendingInvitesCountLiveData.postValue(0);
+            }
+        }).start();
+    }
+
     public void loadMarkets(double userLat, double userLon) {
         if (isLocationsLoaded) {
             Log.d("MapViewModel", "Locations already loaded, skipping redundant fetch.");
@@ -60,12 +92,10 @@ public class MapViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             try {
-                // נשתמש בפונקציה הקודמת לטעינת שווקים בלבד, ונדאג להשתמש בפורמט הנתונים הנכון
                 String response = Service.getOrderedMarkets(userLat, userLon, LocalDate.now().toString());
                 List<Object> fetchedLocations = parseMarketsFromJson(response);
                 locationsLiveData.postValue(fetchedLocations);
                 isLocationsLoaded = true;
-
             } catch (IOException | JSONException e) {
                 Log.e("MapViewModel", "Error loading markets: " + e.getMessage(), e);
                 errorMessageLiveData.postValue("שגיאה בטעינת שווקים: " + e.getMessage());
@@ -99,19 +129,11 @@ public class MapViewModel extends AndroidViewModel {
         }).start();
     }
 
-    /**
-     * מפרסר את תגובת ה-JSON מהשרת לרשימת אובייקטים מעורבת (Market ו-Farmer).
-     * <p>
-     * **שינוי:** מתודה זו מטפלת במבנה ה-JSON של תגובת החיפוש,
-     * שמכיל אובייקט ראשי עם מפתח "results". עבור חקלאי, היא מפרסרת
-     * את רשימת השווקים המשתתפים שלו ומוסיפה אותם לרשימה הכללית.
-     *
-     * @param jsonResponse תגובת ה-JSON מהשרת כמחרוזת.
-     * @return רשימת אובייקטים (Market ו/או Farmer).
-     * @throws JSONException אם יש שגיאה בפענוח ה-JSON.
-     */
+    // ... all other existing methods (parseSearchResponse, parseMarketsFromJson, resetMarketsLoaded) ...
+
     @SuppressLint("NewApi")
     private List<Object> parseSearchResponse(String jsonResponse) throws JSONException {
+        // (No changes needed here)
         List<Object> locations = new ArrayList<>();
         JSONObject responseObject = new JSONObject(jsonResponse);
         JSONArray jsonArray = responseObject.getJSONArray("results");
@@ -128,10 +150,7 @@ public class MapViewModel extends AndroidViewModel {
             } else if ("Farmer".equals(type)) {
                 String name = obj.optString("name");
                 String email = obj.optString("email");
-                // מוסיפים את החקלאי לרשימה
                 locations.add(new Farmer(name, email));
-
-                // מוסיפים את כל השווקים של החקלאי לרשימה
                 if (obj.has("participatingMarkets")) {
                     JSONArray participatingMarketsJson = obj.getJSONArray("participatingMarkets");
                     for (int j = 0; j < participatingMarketsJson.length(); j++) {
@@ -156,6 +175,7 @@ public class MapViewModel extends AndroidViewModel {
 
     @SuppressLint("NewApi")
     private List<Object> parseMarketsFromJson(String jsonResponse) throws JSONException {
+        // (No changes needed here)
         List<Object> markets = new ArrayList<>();
         JSONArray jsonArray = new JSONArray(jsonResponse);
         for (int i = 0; i < jsonArray.length(); i++) {
@@ -170,6 +190,7 @@ public class MapViewModel extends AndroidViewModel {
     }
 
     public void resetMarketsLoaded() {
+        // (No changes needed here)
         isLocationsLoaded = false;
         Log.d("MapViewModel", "Locations loaded flag reset.");
     }

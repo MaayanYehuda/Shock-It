@@ -60,6 +60,7 @@ import java.util.Locale;
 
 import classes.Market;
 import classes.Farmer;
+import android.content.SharedPreferences; // 🌟 Add this import
 
 public class MapFragment extends Fragment implements
         LocationAdapter.OnLocationClickListener,
@@ -72,6 +73,8 @@ public class MapFragment extends Fragment implements
     private LocationAdapter locationAdapter;
     private RecyclerView recyclerView;
     private BottomSheetBehavior<View> bottomSheetBehavior;
+
+    private TextView notificationBadge;
     private HashMap<Marker, Object> markerObjectMap = new HashMap<>();
     private Location currentUserLocation;
 
@@ -82,6 +85,7 @@ public class MapFragment extends Fragment implements
     private ImageButton clearSearchButton;
     private ImageButton backButton;
     private TextView nearbyMarketsTitle;
+    private String currentUserEmail ;
 
     // 🌟 דגל למניעת לולאה אינסופית בעת איפוס שדה החיפוש
     private boolean isResettingSearch = false;
@@ -103,6 +107,8 @@ public class MapFragment extends Fragment implements
                 }
             }
         });
+        currentUserEmail = getUserEmailFromPrefs();
+        Log.d("MapFragment", "Fetched user email: " + currentUserEmail);
     }
 
     @Nullable
@@ -115,6 +121,7 @@ public class MapFragment extends Fragment implements
         mapViewModel = new ViewModelProvider(this).get(MapViewModel.class);
 
         // UI Initialization (RecyclerView, Adapters, LiveData Observers)
+        notificationBadge = rootView.findViewById(R.id.notificationBadge);
         recyclerView = rootView.findViewById(R.id.marketsView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         locationAdapter = new LocationAdapter(new ArrayList<>(), this);
@@ -253,6 +260,16 @@ public class MapFragment extends Fragment implements
 
         backButton.setOnClickListener(v -> resetToInitialState());
 
+        mapViewModel.getPendingInvitesCountLiveData().observe(getViewLifecycleOwner(), count -> {
+            Log.d("MapFragment", "Received pending invites count: " + count);
+            if (count != null && count > 0) {
+                notificationBadge.setText(String.valueOf(count));
+                notificationBadge.setVisibility(View.VISIBLE);
+            } else {
+                notificationBadge.setVisibility(View.GONE);
+            }
+        });
+
         // 🌟 המאזין TextWatcher המתוקן
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -329,8 +346,13 @@ public class MapFragment extends Fragment implements
     @Override
     public void onResume() {
         super.onResume();
-        // מוודאים שהאפליקציה מתחילה תמיד במצב הראשוני
         resetToInitialState();
+
+        if (currentUserEmail != null) {
+            mapViewModel.loadPendingInvitesCount(currentUserEmail);
+        } else {
+            Log.w("MapFragment", "User email is null. Cannot load pending invites count.");
+        }
     }
 
     private void updateMapMarkers(List<Object> locations) {
@@ -518,6 +540,11 @@ public class MapFragment extends Fragment implements
             Log.e("MapFragment", "Navigation failed: " + e.getMessage());
             Toast.makeText(requireContext(), "שגיאת ניווט! ודא שהאקשן מוגדר בגרף הניווט.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String getUserEmailFromPrefs() {
+        SharedPreferences sharedPrefs = requireActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        return sharedPrefs.getString("user_email", null);
     }
 
 }

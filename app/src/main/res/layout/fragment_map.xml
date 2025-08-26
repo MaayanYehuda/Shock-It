@@ -8,26 +8,12 @@
     android:layout_height="match_parent"
     android:background="#F5F5F5">
 
-    <!-- כפתור הזמנות צף בפינה השמאלית תחתונה -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/messages"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="הזמנות"
-        android:src="@drawable/en"
-        app:backgroundTint="#9DC183"
-        app:layout_anchorGravity="bottom|start"
-        app:elevation="6dp" />
-
-    <!-- מפת גוגל תופסת את כל שטח המסך -->
     <FrameLayout
         android:id="@+id/map_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        />
+        android:layout_height="match_parent">
+    </FrameLayout>
 
-    <!-- גיליון תחתון (BottomSheet) שניתן למשוך למעלה -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/bottom_sheet"
         android:layout_width="match_parent"
@@ -39,10 +25,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:orientation="vertical"
-            android:background="@android:color/white" >
+            android:background="@android:color/white"
+            android:orientation="vertical">
 
-            <!-- ידית אחיזה קטנה למשיכת ה-BottomSheet -->
             <View
                 android:layout_width="48dp"
                 android:layout_height="4dp"
@@ -50,15 +35,14 @@
                 android:layout_marginTop="8dp"
                 android:background="@drawable/list_view_border_background" />
 
-            <!-- מכולה עבור הכותרת וכפתור החיפוש -->
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingStart="16dp"
-                android:paddingEnd="8dp"
-                android:paddingTop="16dp"
+                android:gravity="center_vertical"
                 android:paddingBottom="8dp"
-                android:gravity="center_vertical">
+                android:paddingEnd="8dp"
+                android:paddingStart="16dp"
+                android:paddingTop="16dp">
 
                 <ImageButton
                     android:id="@+id/openSearchButton"
@@ -75,26 +59,24 @@
                     android:id="@+id/nearbyMarketsTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="35dp"
-                    android:layout_toEndOf="@id/openSearchButton"
                     android:layout_marginStart="16dp"
+                    android:layout_toEndOf="@id/openSearchButton"
+                    android:gravity="center_vertical"
                     android:text="רשימת שווקים קרובים"
                     android:textColor="@android:color/black"
                     android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:gravity="center_vertical" />
-
+                    android:textStyle="bold" />
             </RelativeLayout>
 
-            <!-- מכולה עבור תיבת החיפוש, מוסתרת כברירת מחדל -->
             <LinearLayout
                 android:id="@+id/searchContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginVertical="8dp"
                 android:background="@drawable/rounded_edittext_background"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:visibility="gone">
 
                 <ImageButton
@@ -102,9 +84,9 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_chevron_right_smst"
                     android:contentDescription="חזור לרשימה המקורית"
                     android:padding="12dp"
+                    android:src="@drawable/ic_chevron_right_smst"
                     android:visibility="gone"
                     app:tint="#888888" />
 
@@ -113,16 +95,16 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="חפש מוצרים, שווקים או חקלאים..."
-                    android:paddingStart="12dp"
-                    android:paddingEnd="8dp"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="12dp"
                     android:background="@android:color/transparent"
-                    android:singleLine="true"
-                    android:textColor="#333333"
+                    android:hint="חפש מוצרים, שווקים או חקלאים..."
                     android:imeOptions="actionSearch"
-                    android:inputType="text"/>
+                    android:inputType="text"
+                    android:paddingBottom="12dp"
+                    android:paddingEnd="8dp"
+                    android:paddingStart="12dp"
+                    android:paddingTop="12dp"
+                    android:singleLine="true"
+                    android:textColor="#333333" />
 
                 <ImageButton
                     android:id="@+id/clearSearchButton"
@@ -141,8 +123,8 @@
                     android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="התחל חיפוש"
-                    android:src="@android:drawable/ic_menu_search"
                     android:padding="12dp"
+                    android:src="@android:drawable/ic_menu_search"
                     app:tint="#4CAF50" />
             </LinearLayout>
 
@@ -152,17 +134,46 @@
                 android:layout_height="1dp"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="16dp"
-                android:background="#9DC183"
-                android:layout_marginBottom="8dp" />
+                android:layout_marginBottom="8dp"
+                android:background="#9DC183" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/marketsView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginTop="8dp"/>
+                android:layout_marginTop="8dp" />
 
         </LinearLayout>
-
     </com.google.android.material.card.MaterialCardView>
+
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="25dp"
+        android:layout_marginStart="15dp"
+        app:elevation="8dp"> <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/messages"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="הזמנות"
+        android:src="@drawable/en"
+        app:backgroundTint="#9DC183"
+        app:elevation="0dp" /> <TextView
+        android:id="@+id/notificationBadge"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="top|end"
+        android:background="@drawable/badge_background"
+        android:gravity="center"
+        android:text="0"
+        android:textColor="@android:color/white"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:visibility="visible"
+        android:layout_marginTop="0dp"
+        android:layout_marginEnd="0dp"
+        app:elevation="8dp" /> </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
