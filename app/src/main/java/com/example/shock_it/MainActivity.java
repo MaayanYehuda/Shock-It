@@ -300,6 +300,7 @@ public class MainActivity extends AppCompatActivity implements
                     if ("Market".equals(type)) {
                         String location = obj.getString("location");
                         String dateStr = obj.getString("date");
+                        String hours= obj.getString("hours");
 
                         double marketLat = obj.optDouble("latitude", 0.0);
                         double marketLng = obj.optDouble("longitude", 0.0);
@@ -308,7 +309,7 @@ public class MainActivity extends AppCompatActivity implements
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             date = LocalDate.parse(dateStr);
                         }
-                        Market market = new Market(date, location, marketLat, marketLng);
+                        Market market = new Market(date, location, hours ,marketLat, marketLng);
                         searchResults.add(market);
                         Log.d("MainActivity", "Found Market: " + market.getLocation());
                     } else if ("Farmer".equals(type)) {
@@ -326,6 +327,7 @@ public class MainActivity extends AppCompatActivity implements
                                 JSONObject marketObj = participatingMarketsJson.getJSONObject(j);
                                 String marketLocation = marketObj.getString("location");
                                 String marketDateStr = marketObj.getString("date");
+                                String marketHours= marketObj.getString("hours");
                                 double marketLat = marketObj.optDouble("latitude", 0.0);
                                 double marketLng = marketObj.optDouble("longitude", 0.0);
 
@@ -333,7 +335,7 @@ public class MainActivity extends AppCompatActivity implements
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                     marketDate = LocalDate.parse(marketDateStr);
                                 }
-                                Market market = new Market(marketDate, marketLocation, marketLat, marketLng);
+                                Market market = new Market(marketDate, marketLocation,marketHours, marketLat, marketLng);
                                 searchResults.add(market);
                                 Log.d("MainActivity", "Found Market for Farmer " + name + ": " + marketLocation);
                             }
@@ -414,6 +416,7 @@ public class MainActivity extends AppCompatActivity implements
                     JSONObject obj = jsonArray.getJSONObject(i);
                     String location = obj.getString("location");
                     String dateStr = obj.getString("date");
+                    String hoursStr=obj.getString("hours");
                     double lat = obj.getDouble("latitude");
                     double lng = obj.getDouble("longitude");
 
@@ -421,7 +424,7 @@ public class MainActivity extends AppCompatActivity implements
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         date = LocalDate.parse(dateStr);
                     }
-                    markets.add(new Market(date, location, lat, lng));
+                    markets.add(new Market(date, location,hoursStr, lat, lng));
                 }
 
                 // Store the initial markets list

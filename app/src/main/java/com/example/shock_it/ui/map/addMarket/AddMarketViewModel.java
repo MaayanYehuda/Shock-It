@@ -37,12 +37,12 @@ public class AddMarketViewModel extends ViewModel {
 
 
     // פונקציה להוספת שוק - לוגיקה של עבודה ברקע וקריאת API
-    public void addMarket(String date, String location, double latitude, double longitude, String farmerEmail) {
+    public void addMarket(String date,String hours, String location, double latitude, double longitude, String farmerEmail) {
         isLoading.setValue(true);
 
         new Thread(() -> {
             String response = null;
-            response = Service.addNewMarket(date, location, latitude, longitude, farmerEmail);
+            response = Service.addNewMarket(date ,location,hours, latitude, longitude, farmerEmail);
             if (response != null && !response.isEmpty()) {
                 try {
                     JSONObject jsonResponse = new JSONObject(response);

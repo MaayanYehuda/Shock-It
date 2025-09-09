@@ -86,6 +86,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                     String marketId = marketObj.optString("marketId", null);
                     String location = marketObj.optString("location", null);
                     String dateStr = marketObj.optString("date", null);
+                    String hoursStr= marketObj.optString("hours", null);
 
                     if (marketId == null || location == null || dateStr == null || "null".equalsIgnoreCase(dateStr)) {
                         Log.w("FarmerProfileVM", "Skipping market entry due to null or invalid data: " + marketObj.toString());
@@ -102,7 +103,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                         }
                     }
 
-                    Market market = new Market(date, location, 0.0, 0.0);
+                    Market market = new Market(date, location,hoursStr , 0.0, 0.0);
                     FarmerMarket farmerMarket = new FarmerMarket(market);
                     farmerMarket.setParticipated(true);
                     currentFarmer.addFarmerMarket(farmerMarket);

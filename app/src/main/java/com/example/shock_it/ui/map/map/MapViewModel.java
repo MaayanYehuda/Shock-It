@@ -19,6 +19,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter; // Added
+import java.time.format.DateTimeParseException; // Added
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +30,6 @@ public class MapViewModel extends AndroidViewModel {
     private MutableLiveData<Boolean> isLoadingLiveData;
     private MutableLiveData<String> errorMessageLiveData;
 
-    // 🌟 New LiveData to hold the pending invites count
     private MutableLiveData<Integer> pendingInvitesCountLiveData;
 
     private boolean isLocationsLoaded = false;
@@ -38,9 +39,8 @@ public class MapViewModel extends AndroidViewModel {
         locationsLiveData = new MutableLiveData<>();
         isLoadingLiveData = new MutableLiveData<>();
         errorMessageLiveData = new MutableLiveData<>();
-        // 🌟 Initialize the new LiveData
         pendingInvitesCountLiveData = new MutableLiveData<>();
-        pendingInvitesCountLiveData.setValue(0); // Set initial value to 0
+        pendingInvitesCountLiveData.setValue(0);
     }
 
     public LiveData<List<Object>> getLocationsLiveData() {
@@ -55,27 +55,18 @@ public class MapViewModel extends AndroidViewModel {
         return errorMessageLiveData;
     }
 
-    // 🌟 Public getter for the new LiveData
     public LiveData<Integer> getPendingInvitesCountLiveData() {
         return pendingInvitesCountLiveData;
     }
 
-    /**
-     * Loads the count of pending invitations for a specific user.
-     * This method runs on a background thread to avoid blocking the UI.
-     * @param userEmail The email of the user whose invitations to count.
-     */
     public void loadPendingInvitesCount(String userEmail) {
         new Thread(() -> {
             try {
                 int count = Service.getPendingInvitesCount(userEmail);
                 Log.d("MapViewModel", "Pending invites count fetched: " + count);
-                // 🌟 Update the LiveData with the new count
                 pendingInvitesCountLiveData.postValue(count);
             } catch (IOException | JSONException e) {
                 Log.e("MapViewModel", "Error fetching pending invites count: " + e.getMessage(), e);
-                // 🌟 Handle error: You might want to log this but not show an error to the user
-                // as it's a non-critical feature. For now, we'll set the count to 0.
                 pendingInvitesCountLiveData.postValue(0);
             }
         }).start();
@@ -92,7 +83,11 @@ public class MapViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             try {
-                String response = Service.getOrderedMarkets(userLat, userLon, LocalDate.now().toString());
+                String response = null;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    // Note: LocalDate.now().toString() returns YYYY-MM-DD
+                    response = Service.getOrderedMarkets(userLat, userLon, LocalDate.now().toString());
+                }
                 List<Object> fetchedLocations = parseMarketsFromJson(response);
                 locationsLiveData.postValue(fetchedLocations);
                 isLocationsLoaded = true;
@@ -129,11 +124,8 @@ public class MapViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // ... all other existing methods (parseSearchResponse, parseMarketsFromJson, resetMarketsLoaded) ...
-
     @SuppressLint("NewApi")
     private List<Object> parseSearchResponse(String jsonResponse) throws JSONException {
-        // (No changes needed here)
         List<Object> locations = new ArrayList<>();
         JSONObject responseObject = new JSONObject(jsonResponse);
         JSONArray jsonArray = responseObject.getJSONArray("results");
@@ -144,9 +136,10 @@ public class MapViewModel extends AndroidViewModel {
             if ("Market".equals(type)) {
                 String locationName = obj.optString("location");
                 String dateStr = obj.optString("date");
+                String hours = obj.getString("hours");
                 double latitude = obj.optDouble("latitude");
                 double longitude = obj.optDouble("longitude");
-                locations.add(new Market(LocalDate.parse(dateStr), locationName, latitude, longitude));
+                locations.add(new Market(parseDateSafely(dateStr), locationName, hours, latitude, longitude));
             } else if ("Farmer".equals(type)) {
                 String name = obj.optString("name");
                 String email = obj.optString("email");
@@ -157,15 +150,11 @@ public class MapViewModel extends AndroidViewModel {
                         JSONObject marketObj = participatingMarketsJson.getJSONObject(j);
                         String marketLocation = marketObj.getString("location");
                         String marketDateStr = marketObj.getString("date");
+                        String marketHours = obj.getString("hours");
                         double marketLat = marketObj.optDouble("latitude", 0.0);
                         double marketLng = marketObj.optDouble("longitude", 0.0);
 
-                        LocalDate marketDate = null;
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                            marketDate = LocalDate.parse(marketDateStr);
-                        }
-                        Market market = new Market(marketDate, marketLocation, marketLat, marketLng);
-                        locations.add(market);
+                        locations.add(new Market(parseDateSafely(marketDateStr), marketLocation, marketHours, marketLat, marketLng));
                     }
                 }
             }
@@ -175,22 +164,43 @@ public class MapViewModel extends AndroidViewModel {
 
     @SuppressLint("NewApi")
     private List<Object> parseMarketsFromJson(String jsonResponse) throws JSONException {
-        // (No changes needed here)
         List<Object> markets = new ArrayList<>();
         JSONArray jsonArray = new JSONArray(jsonResponse);
+
         for (int i = 0; i < jsonArray.length(); i++) {
             JSONObject marketObj = jsonArray.getJSONObject(i);
             String locationName = marketObj.optString("location");
             String dateStr = marketObj.optString("date");
+            String hours = marketObj.optString("hours");
             double latitude = marketObj.optDouble("latitude");
             double longitude = marketObj.optDouble("longitude");
-            markets.add(new Market(LocalDate.parse(dateStr), locationName, latitude, longitude));
+            markets.add(new Market(parseDateSafely(dateStr), locationName, hours, latitude, longitude));
         }
         return markets;
     }
 
+    @SuppressLint("NewApi")
+    private LocalDate parseDateSafely(String dateStr) {
+        if (dateStr == null || dateStr.isEmpty()) {
+            return null;
+        }
+
+        // Try YYYY-MM-DD first (ISO 8601 standard)
+        try {
+            return LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
+        } catch (DateTimeParseException e) {
+            // If that fails, try DD/MM/YYYY
+            try {
+                DateTimeFormatter formatterDMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                return LocalDate.parse(dateStr, formatterDMY);
+            } catch (DateTimeParseException e2) {
+                Log.e("MapViewModel", "Failed to parse date string in any known format: " + dateStr, e2);
+                return null;
+            }
+        }
+    }
+
     public void resetMarketsLoaded() {
-        // (No changes needed here)
         isLocationsLoaded = false;
         Log.d("MapViewModel", "Locations loaded flag reset.");
     }

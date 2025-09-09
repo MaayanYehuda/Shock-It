@@ -52,7 +52,7 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
                 JSONObject json = new JSONObject(response);
 
                 String name = json.optString("location", location);
-                String hours = json.optString("hours", "09:00 - 14:00");
+                String hours = json.optString("hours");
                 String founderNameFromResponse = json.optString("founderName", null);
                 this.founderEmail = json.optString("founderEmail", null);
                 String currentMarketId = json.optString("id", null);

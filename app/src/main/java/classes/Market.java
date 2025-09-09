@@ -6,13 +6,16 @@ import java.time.LocalDate;
 
 public class Market {
     private LocalDate date;
+
+    private String hours;
     private String location;
     private double latitude;
     private double longitude;
 
-    public Market(LocalDate date, String location,double latitude, double longitude) {
+    public Market(LocalDate date, String location,String hours,double latitude, double longitude) {
         this.date = date;
         this.location = location;
+        this.hours= hours;
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -25,6 +28,10 @@ public class Market {
 
     public void setDate(LocalDate date) {
         this.date = date;
+    }
+
+    public void setHours(String hours){
+        this.hours= hours;
     }
 
     public void setLatitude(double latitude) {
@@ -41,6 +48,10 @@ public class Market {
 
     public double getLongitude() {
         return longitude;
+    }
+
+    public String getHours(){
+        return this.hours;
     }
 
 

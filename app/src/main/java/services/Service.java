@@ -21,7 +21,7 @@ public class Service {
     // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
     // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
     // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.1.10:3000"; // השארתי את ה-IP ששלחת
+    private final static String spec = "http://192.168.0.105:3000"; // השארתי את ה-IP ששלחת
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
@@ -186,11 +186,12 @@ public class Service {
         return get("markets");
     }
 
-    public static String addNewMarket(String date, String loc, double latitude, double longitude, String farmerEmail) {
+    public static String addNewMarket(String date,String loc, String hours, double latitude, double longitude, String farmerEmail) {
         try {
             JSONObject jsonParam = new JSONObject();
             jsonParam.put("date", date);
             jsonParam.put("location", loc);
+            jsonParam.put("hours", hours);
             jsonParam.put("latitude", latitude);
             jsonParam.put("longitude", longitude);
             jsonParam.put("farmerEmail", farmerEmail);
