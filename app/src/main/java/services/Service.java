@@ -63,7 +63,6 @@ public class Service {
         conn.disconnect();
         return jsonString.toString();
     }
-
     public static String put(String path, String data) throws IOException {
         URL url = new URL(spec + "/" + path);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
