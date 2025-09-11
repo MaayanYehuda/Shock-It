@@ -1,17 +1,16 @@
 const express = require("express");
 const router = express.Router();
 const neo4j = require("neo4j-driver");
-const { v4: uuidv4 } = require("uuid"); // 🆕 הוספה: ייבוא ספריית UUID
+const { v4: uuidv4 } = require("uuid");
 
 const driver = neo4j.driver(
-  "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  // neo4j.auth.basic("neo4j", "loolrov17")
-   neo4j.auth.basic("neo4j", "315833301")
+  "bolt://localhost:7687",
+  neo4j.auth.basic("neo4j", "loolrov17")
+  //  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
 
-// ה-endpoint הקיים שלך
 router.get("/", async (req, res) => {
   try {
     const result = await session.run("MATCH (m:Market) RETURN m");
@@ -23,8 +22,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET - שליפת שווקים ממוינים לפי תאריך וקרבה
-// GET - שליפת שווקים ממוינים לפי תאריך וקרבה
 router.get("/order", async (req, res) => {
   const { userLat, userLon, currentDate } = req.query;
   console.log("Incoming request to /markets/order with params:", {
@@ -40,15 +37,15 @@ router.get("/order", async (req, res) => {
     let queryParts = [`MATCH (m:Market)`];
     let params = {};
     let orderByClauses = [];
-    
-    // ✅ This is the crucial change. Explicitly list all properties you need from the start.
+
+    //list all properties from the start.
     let returnItems = [
       `m.id AS id`,
       `m.date AS date`,
       `m.hours AS hours`,
       `m.location AS location`,
       `m.latitude AS latitude`,
-      `m.longitude AS longitude`
+      `m.longitude AS longitude`,
     ];
 
     if (currentDate) {
@@ -85,10 +82,10 @@ router.get("/order", async (req, res) => {
 
     const result = await session.run(finalQuery, params);
     const markets = result.records.map((record) => {
-      // ✅ Now, get the properties directly from the record using the aliases
-      const hours = record.get("hours") || "09:00 - 16:00"; 
-      const distance = record.has("distance") ? record.get("distance") : null; 
-      
+      // get the properties directly from the record using the aliases
+      const hours = record.get("hours") || "09:00 - 16:00";
+      const distance = record.has("distance") ? record.get("distance") : null;
+
       return {
         id: record.get("id"),
         date: record.get("date"),
@@ -117,11 +114,10 @@ router.get("/order", async (req, res) => {
   }
 });
 
-// POST - הוספת שוק חדש (עם ID ייחודי והחזרת ID)
 router.post("/addMarket", async (req, res) => {
   console.log("=== POST /addMarket ===");
   console.log("Request body:", req.body);
-  const { date, hours ,latitude, location, longitude, farmerEmail } = req.body;
+  const { date, hours, latitude, location, longitude, farmerEmail } = req.body;
 
   if (
     !date ||
@@ -133,16 +129,22 @@ router.post("/addMarket", async (req, res) => {
   ) {
     return res.status(400).json({
       message: "Missing required fields",
-      required: ["date","hours" ,"location", "latitude", "longitude", "farmerEmail"],
-      received: { date, hours ,location, latitude, longitude, farmerEmail },
+      required: [
+        "date",
+        "hours",
+        "location",
+        "latitude",
+        "longitude",
+        "farmerEmail",
+      ],
+      received: { date, hours, location, latitude, longitude, farmerEmail },
     });
   }
 
   try {
-    // 🆕 צור ID ייחודי לשוק
     const marketId = uuidv4();
 
-    // בדיקה אם שוק עם אותו תאריך ומיקום כבר קיים (אופציונלי, אם אתה רוצה לאפשר רק שוק אחד ליום במיקום נתון)
+    // בדיקה אם שוק עם אותו תאריך ומיקום כבר קיים
     const checkResult = await session.run(
       "MATCH (m:Market {date: $date, location: $location})  RETURN m",
       { date, location }
@@ -154,11 +156,10 @@ router.post("/addMarket", async (req, res) => {
         .json({ message: "Market already exists at this date and location" });
     }
 
-    // יצירת השוק עם ה-ID החדש
     const createMarketResult = await session.run(
       "CREATE (m:Market {id: $marketId, date: $date,hours: $hours , latitude: $latitude, location: $location, longitude: $longitude}) RETURN m",
       {
-        marketId, //  הוספנו את ה-ID
+        marketId,
         date,
         hours,
         latitude: parseFloat(latitude),
@@ -171,16 +172,16 @@ router.post("/addMarket", async (req, res) => {
 
     // יצירת קשר FOUNDER
     await session.run(
-      `MATCH (f:Person {email: $email}), (m:Market {id: $marketId}) // השתמש ב-marketId
+      `MATCH (f:Person {email: $email}), (m:Market {id: $marketId}) 
             CREATE (f)-[:FOUNDER]->(m)`,
-      { email: farmerEmail, marketId } // השתמש ב-marketId
+      { email: farmerEmail, marketId }
     );
 
     console.log("Market and FOUNDER relation created:", marketProperties);
 
     res.status(201).json({
       message: "Market created and linked to farmer",
-      marketId: marketId, // 🆕 החזר את ה-ID של השוק
+      marketId: marketId,
       market: marketProperties,
     });
   } catch (error) {
@@ -229,7 +230,7 @@ router.get("/profile", async (req, res) => {
           email: p_pending.email
       }) AS pendingRequests
 
-      // אוסף את מוצרי השוק הספציפיים (הלוגיקה הזו נשארת ללא שינוי)
+      // אוסף את מוצרי השוק הספציפיים
       OPTIONAL MATCH (m)-[will_be:WILL_BE]->(marketItem:Item)<-[offers_item:OFFERS]-(farmerOfferingMarketItem:Person)
       WITH m, f_founder, participatingFarmers, invitedFarmers, pendingRequests, COLLECT(DISTINCT {
           name: marketItem.name,
@@ -265,7 +266,6 @@ router.get("/profile", async (req, res) => {
     const marketProfile = result.records[0].get("marketProfile");
     marketProfile.hours = marketProfile.hours || "09:00 - 16:00";
 
-    // ניקוי מערכים ריקים שהתקבלו מ-COLLECT על OPTIONAL MATCH
     const cleanArray = (arr) =>
       arr.length === 1 && arr[0].name === null
         ? []
@@ -294,26 +294,9 @@ router.get("/profile", async (req, res) => {
   }
 });
 
-// זה ה-endpoint עבור רשימת כל השווקים/תאריכים
-// router.get("/locations-dates", async (req, res) => {
-//   try {
-//     const result = await session.run(
-//       "MATCH (m:Market) RETURN m.location AS location, m.date AS date"
-//     );
-//     const markets = result.records.map((record) => ({
-//       location: record.get("location"),
-//       date: record.get("date"),
-//     }));
-//     res.json(markets); // <--- מחזיר מערך
-//   } catch (error) {
-//     console.error("Error fetching market locations and dates:", error);
-//     res.status(500).send("Error fetching market data");
-//   }
-// });
-
-// POST - הזמנת חקלאי לשוק (כעת מקבל marketId)
+// POST - הזמנת חקלאי לשוק
 router.post("/inviteFarmer", async (req, res) => {
-  const { marketId, invitedEmail, inviterEmail } = req.body; // 🆕 שינוי: מקבל marketId
+  const { marketId, invitedEmail, inviterEmail } = req.body;
 
   if (!marketId || !invitedEmail || !inviterEmail) {
     return res.status(400).json({
@@ -322,7 +305,6 @@ router.post("/inviteFarmer", async (req, res) => {
   }
 
   try {
-    // 1. ודא שהחקלאי המזמין (inviter) קיים
     const inviterResult = await session.run(
       `MATCH (inviter:Person {email: $inviterEmail}) RETURN inviter`,
       { inviterEmail }
@@ -331,7 +313,6 @@ router.post("/inviteFarmer", async (req, res) => {
       return res.status(404).json({ message: "Inviter (founder) not found." });
     }
 
-    // 2. ודא שהחקלאי המוזמן (invited) קיים
     const invitedResult = await session.run(
       `MATCH (invited:Person {email: $invitedEmail}) RETURN invited`,
       { invitedEmail }
@@ -340,22 +321,20 @@ router.post("/inviteFarmer", async (req, res) => {
       return res.status(404).json({ message: "Invited farmer not found." });
     }
 
-    // 3. ודא שהשוק קיים
     const marketResult = await session.run(
-      `MATCH (market:Market {id: $marketId}) RETURN market`, // 🆕 השתמש ב-marketId
+      `MATCH (market:Market {id: $marketId}) RETURN market`,
       { marketId }
     );
     if (marketResult.records.length === 0) {
       return res.status(404).json({ message: "Market not found." });
     }
 
-    // 4. צור או עדכן קשר INVITE עם participate=false
     await session.run(
       `MATCH (market:Market {id: $marketId}), (farmer:Person {email: $invitedEmail})
             MERGE (market)-[r:INVITE]->(farmer)
             ON CREATE SET r.participate = false
             ON MATCH SET r.participate = false`,
-      { marketId, invitedEmail } // 🆕 השתמש ב-marketId
+      { marketId, invitedEmail }
     );
 
     res.status(200).json({ message: "Invitation sent successfully." });
@@ -365,9 +344,9 @@ router.post("/inviteFarmer", async (req, res) => {
   }
 });
 
-// 🆕 GET - חיפוש חקלאים לפי שם או אימייל
+// חיפוש חקלאים לפי שם או אימייל
 router.get("/searchFarmers", async (req, res) => {
-  const { query } = req.query; // קבל את שאילתת החיפוש מה-query parameters
+  const { query } = req.query;
 
   if (!query || query.trim() === "") {
     return res.status(400).json({ message: "Search query is required" });
@@ -393,7 +372,6 @@ router.get("/searchFarmers", async (req, res) => {
   }
 });
 
-// קבלת כל ההזמנות של משתמש לפי אימייל (ייתכן שתצטרך להתאים אם תעבור ל-marketId)
 router.get("/invitations/:email", async (req, res) => {
   const { email } = req.params;
 
@@ -417,9 +395,7 @@ router.get("/invitations/:email", async (req, res) => {
   }
 });
 
-// PUT - קבלת הזמנה (ייתכן שתצטרך להתאים אם תעבור ל-marketId)
-// קובץ הראוטר שלך (לדוגמה, marketsRouter.js)
-
+// אישור הזמנה לשוק
 router.put("/acceptInvitation", async (req, res) => {
   const { email, marketId } = req.body;
   console.log("Incoming request for acceptInvitation. Body:", req.body);
@@ -428,7 +404,7 @@ router.put("/acceptInvitation", async (req, res) => {
       `MATCH (m:Market {id: $marketId})-[r:INVITE]->(f:Person {email: $email}) 
        SET r.participate = true
        RETURN r`,
-      { email, marketId } // ה-email וה-marketId מגיעים לכאן
+      { email, marketId }
     );
 
     if (result.records.length > 0) {
@@ -487,7 +463,7 @@ router.post("/:marketId/add-product", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "Market ID, farmer email, item name, and price are required.",
-    }); // ✅ תיקון: החזרת JSON
+    });
   }
 
   let session;
@@ -510,7 +486,7 @@ router.post("/:marketId/add-product", async (req, res) => {
 
     if (result.records.length === 0) {
       return res.status(404).json({
-        success: false, // ✅ תיקון: הוספת success: false
+        success: false,
         message:
           "Could not add product. Market, farmer, or item not found, or item not offered by farmer.",
       });
@@ -519,7 +495,6 @@ router.post("/:marketId/add-product", async (req, res) => {
     console.log(
       `Product '${itemName}' added to market '${marketId}' by '${farmerEmail}' successfully.`
     );
-    // ✅ תיקון קריטי: הוספת success: true
     res.status(200).json({
       success: true,
       message: "Product successfully added/updated in market.",
@@ -529,7 +504,7 @@ router.post("/:marketId/add-product", async (req, res) => {
   } catch (error) {
     console.error("Error adding product to market:", error);
     res.status(500).json({
-      success: false, // ✅ תיקון: הוספת success: false
+      success: false,
       message: "Error adding product to market.",
       details: error.message,
     });
@@ -540,14 +515,15 @@ router.post("/:marketId/add-product", async (req, res) => {
   }
 });
 
+// לקבלת כל השווקים שהחקלאי משתתף בהם (כמייסד או כחלק מהשתתפות מאושרת)
 router.get("/farmer-markets/:email", async (req, res) => {
-  const { email } = req.params; // קבלת המייל מהפרמטרים של ה-URL
+  const { email } = req.params;
 
   if (!email) {
     return res.status(400).send("Farmer email is required.");
   }
 
-  const session = driver.session(); // יצירת סשן לכל בקשה
+  const session = driver.session();
   try {
     const result = await session.run(
       `
@@ -571,7 +547,7 @@ router.get("/farmer-markets/:email", async (req, res) => {
       // איחוד וסינון כפילויות
       UNWIND foundedMarkets + invitedMarkets AS allMarketData
       WITH DISTINCT allMarketData
-      WHERE allMarketData.id IS NOT NULL // ודא שאין רשומות ריקות מ-OPTIONAL MATCH
+      WHERE allMarketData.id IS NOT NULL 
       RETURN allMarketData.id AS marketId,
              allMarketData.location AS location,
              allMarketData.date AS date
@@ -581,7 +557,6 @@ router.get("/farmer-markets/:email", async (req, res) => {
     );
 
     if (result.records.length === 0) {
-      // אם לא נמצאו שווקים כלל, החזר מערך ריק במקום 404
       return res.json([]);
     }
 
@@ -599,7 +574,7 @@ router.get("/farmer-markets/:email", async (req, res) => {
       error: error.message,
     });
   } finally {
-    session.close(); // סגור את הסשן בסיום
+    session.close();
   }
 });
 
@@ -624,7 +599,7 @@ router.post("/:marketId/request", async (req, res) => {
     return res.status(400).json({
       success: false,
       message: "מזהה שוק, מייל חקלאי ורשימת מוצרים נדרשים.",
-    }); // ✅ תיקון: החזרת JSON גם בשגיאה
+    });
   }
 
   let session;
@@ -644,7 +619,7 @@ router.post("/:marketId/request", async (req, res) => {
     if (checkResult.records.length === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "השוק או החקלאי לא נמצאו." }); // ✅ תיקון: החזרת JSON
+        .json({ success: false, message: "השוק או החקלאי לא נמצאו." });
     }
     console.log("Market and farmer found, proceeding with request...");
 
@@ -661,7 +636,7 @@ router.post("/:marketId/request", async (req, res) => {
       return res.status(409).json({
         success: false,
         message: "בקשת הצטרפות כבר קיימת עבור שוק זה.",
-      }); // ✅ תיקון: החזרת JSON
+      });
     }
 
     const tx = session.beginTransaction();
@@ -678,7 +653,6 @@ router.post("/:marketId/request", async (req, res) => {
       );
       await tx.commit();
       console.log("Request sent successfully with products:", products);
-      // ✅ תיקון קריטי: החזרת JSON עם success: true
       res.status(200).json({ success: true, message: "הבקשה נשלחה בהצלחה." });
     } catch (txError) {
       console.error("Transaction failed, rolling back:", txError);
@@ -686,13 +660,13 @@ router.post("/:marketId/request", async (req, res) => {
       res.status(500).json({
         success: false,
         message: "שגיאה בשליחת הבקשה: " + txError.message,
-      }); // ✅ תיקון: החזרת JSON
+      });
     }
   } catch (error) {
     console.error("שגיאה בשליחת בקשת הצטרפות:", error);
     res
       .status(500)
-      .json({ success: false, message: "שגיאת שרת פנימית: " + error.message }); // ✅ תיקון: החזרת JSON
+      .json({ success: false, message: "שגיאת שרת פנימית: " + error.message });
   } finally {
     if (session) {
       session.close();
@@ -756,7 +730,6 @@ router.get("/:marketId/requests", async (req, res) => {
   }
 });
 // POST - אישור בקשת הצטרפות לשוק
-// POST - אישור בקשת הצטרפות לשוק
 router.post("/:marketId/requests/approve", async (req, res) => {
   const { marketId } = req.params;
   const { farmerEmail } = req.body;
@@ -803,7 +776,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
     const tx = session.beginTransaction();
 
     try {
-      // 2. מחק את קשר ה-REQUEST
       await tx.run(
         `
         MATCH (f:Person {email: $farmerEmail})-[r:REQUEST]->(m:Market {id: $marketId})
@@ -812,7 +784,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
         { farmerEmail, marketId }
       );
 
-      // 3. צור קשר INVITE חדש עם participate: true
       await tx.run(
         `
         MATCH (f:Person {email: $farmerEmail})
@@ -823,7 +794,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
         { farmerEmail, marketId }
       );
 
-      // 4. לכל מוצר שאושר: מצא את המוצר הקיים של החקלאי וצור/עדכן WILL_BE
       for (const product of productsToApprove) {
         console.log(
           `--- Processing product: ${product.name} for farmer: ${farmerEmail} ---`
@@ -832,7 +802,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
           `Attempting to MATCH Item with name: '${product.name}' offered by farmer: '${farmerEmail}'`
         );
 
-        // ✅ תיקון קריטי: הסרת ownerEmail ממאפייני Item ב-MATCH
         const itemMatchResult = await tx.run(
           `
           MATCH (f:Person {email: $farmerEmail})-[:OFFERS]->(i:Item {name: $productName})
@@ -853,7 +822,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
             `SUCCESS: Found existing Item node for '${product.name}'. Item properties:`,
             itemNode.properties
           );
-          // ✅ שלב 4ב: אם המוצר נמצא, צור או עדכן את קשר ה-WILL_BE
           await tx.run(
             `
             MATCH (m:Market {id: $marketId})
@@ -867,7 +835,7 @@ router.post("/:marketId/requests/approve", async (req, res) => {
             `,
             {
               marketId: marketId,
-              farmerEmail: farmerEmail, // נחוץ ל-MATCH החדש של Person-OFFERS-Item
+              farmerEmail: farmerEmail,
               productName: product.name,
               marketPrice: product.price,
             }
@@ -876,7 +844,6 @@ router.post("/:marketId/requests/approve", async (req, res) => {
             `SUCCESS: WILL_BE relationship processed for product: ${product.name}.`
           );
         } else {
-          // ✅ אם המוצר לא נמצא, הדפס אזהרה ברורה
           console.warn(
             `WARNING: Item '${product.name}' offered by '${farmerEmail}' NOT FOUND via OFFERS relationship. WILL_BE relationship NOT created for this product. Check if the product exists or if 'OFFERS' relationship is correct.`
           );
@@ -972,7 +939,6 @@ router.get("/search", async (req, res) => {
   console.log("--- Incoming Search Request ---");
   console.log("Raw Query Params:", req.query);
 
-  // Validate that all necessary parameters exist
   if (
     !query ||
     typeof query !== "string" ||
@@ -992,7 +958,6 @@ router.get("/search", async (req, res) => {
     const userLatFloat = parseFloat(userLat);
     const userLonFloat = parseFloat(userLon);
 
-    // Validate that lat/lon are valid numbers
     if (isNaN(userLatFloat) || isNaN(userLonFloat)) {
       console.error(
         `Validation failed: Failed to parse userLat (${userLat}) or userLon (${userLon}).`
@@ -1007,14 +972,12 @@ router.get("/search", async (req, res) => {
       longitude: userLonFloat,
     });
 
-    // --- Execute the three distinct search scenarios ---
     const allResults = {
       markets: [],
       farmers: [],
     };
     const uniqueIdentifiers = new Set();
 
-    // 1. Search for Markets by location or date
     // This query finds markets and calculates distance.
     const marketLocationQuery = `
             MATCH (m:Market)
@@ -1041,7 +1004,6 @@ router.get("/search", async (req, res) => {
       }
     }
 
-    // 2. Search for Farmers by name or email
     // This query finds farmers and includes all their participating markets.
     const farmerQuery = `
             MATCH (p:Person)
@@ -1072,7 +1034,6 @@ router.get("/search", async (req, res) => {
       }
     }
 
-    // 3. Search for Products offered by Farmers or available at Markets
     // This query searches for items and returns both the farmers and markets associated with them.
     const productQuery = `
             // Find farmers offering the product
@@ -1127,7 +1088,6 @@ router.get("/search", async (req, res) => {
       }
     }
 
-    // --- Custom Sorting Logic ---
     // Sort markets by date, then by distance
     allResults.markets.sort((a, b) => {
       const dateA = new Date(a.date);
@@ -1151,9 +1111,6 @@ router.get("/search", async (req, res) => {
     console.error("--- Error Searching ---");
     console.error("Error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
-  } finally {
-    // We don't need to close the session here since it's a shared session.
-    // The driver should be closed on application shutdown.
   }
 });
 

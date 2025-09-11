@@ -2,15 +2,13 @@ const express = require("express");
 const router = express.Router();
 const neo4j = require("neo4j-driver");
 const bcrypt = require("bcrypt");
-// התחברות ל-NEO4J
 const driver = neo4j.driver(
-  "bolt://localhost:7687", // כתובת בסיס הנתונים המקומי
-  // neo4j.auth.basic("neo4j", "loolrov17")
-   neo4j.auth.basic("neo4j", "315833301")
+  "bolt://localhost:7687",
+  neo4j.auth.basic("neo4j", "loolrov17")
+  //  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
-// דוגמה: קבלת כל הצמתים מסוג "User"
 router.get("/", async (req, res) => {
   try {
     const result = await session.run("MATCH (u:Person) RETURN u");
@@ -22,7 +20,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// דוגמה: התחברות של משתמש
+//  התחברות של משתמש
 router.get("/login", async (req, res) => {
   const { email, password } = req.query;
 
@@ -42,7 +40,6 @@ router.get("/login", async (req, res) => {
 
     const user = result.records[0].get("u").properties;
 
-    // השוואה בין הסיסמה שנשלחה ל-Hash שב-DB
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ error: "Invalid email or password" });
@@ -55,7 +52,7 @@ router.get("/login", async (req, res) => {
   }
 });
 
-// דוגמה: הוספת משתמש חדש
+// הוספת משתמש חדש
 router.post("/register", async (req, res) => {
   const {
     email,
@@ -81,10 +78,8 @@ router.post("/register", async (req, res) => {
       return res.status(409).json({ message: "Email already exists" });
     }
 
-    // יצירת hash לסיסמה
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // בניית שאילתה דינמית
     let cypherQuery = `
             CREATE (u:Person {
                 email: $email, 
@@ -117,7 +112,6 @@ router.post("/register", async (req, res) => {
 
     cypherQuery += "}) RETURN u";
 
-    // שמירה ב-DB עם הסיסמה המוצפנת
     const result = await session.run(cypherQuery, params);
 
     const user = result.records[0].get("u").properties;
@@ -159,7 +153,6 @@ router.get("/profile", async (req, res) => {
 });
 
 router.put("/update", async (req, res) => {
-  // קולט את כל השדות מהבקשה, כולל notificationRadius וגם את הקואורדינטות.
   const {
     email,
     name,
@@ -170,7 +163,6 @@ router.put("/update", async (req, res) => {
     notificationRadius,
   } = req.body;
 
-  // מוודא שכל השדות הנדרשים קיימים.
   if (
     !email ||
     !name ||
@@ -187,7 +179,6 @@ router.put("/update", async (req, res) => {
     const result = await session.run(
       `
       MATCH (u:Person {email: $email})
-      // עדכן את כל השדות הקיימים, כולל notificationRadius והקואורדינטות החדשות.
       SET u.name = $name, u.phone = $phone, u.address = $address,u.latitude=$latitude, u.longitude= $longitude ,u.notificationRadius = $notificationRadius
       RETURN u
       `,
@@ -251,8 +242,6 @@ router.get("/invitations/count", async (req, res) => {
   try {
     session = driver.session();
 
-    // שאילתת Cypher לספירת הזמנות INVITE ממתינות עבור המשתמש
-    // השאילתה מוצאת קשרי INVITE המגיעים אל המשתמש ומסננת רק את אלו עם participante = false
     const cypherQuery = `
             MATCH (m:Market)-[i:INVITE]->(u:Person {email: $email})
             WHERE i.participate = false
@@ -261,7 +250,6 @@ router.get("/invitations/count", async (req, res) => {
 
     const result = await session.run(cypherQuery, { email });
 
-    // קבלת התוצאה
     const pendingInvitationsCount = result.records[0].get(
       "pendingInvitationsCount"
     ).low;

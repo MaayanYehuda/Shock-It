@@ -2,11 +2,10 @@ const express = require("express");
 const router = express.Router();
 const neo4j = require("neo4j-driver");
 
-// התחברות ל-NEO4J
 const driver = neo4j.driver(
   "bolt://localhost:7687",
-  // neo4j.auth.basic("neo4j", "loolrov17")
-   neo4j.auth.basic("neo4j", "315833301")
+  neo4j.auth.basic("neo4j", "loolrov17")
+  //  neo4j.auth.basic("neo4j", "315833301")
 );
 
 const session = driver.session();
@@ -67,9 +66,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-// In your Node.js router file (e.g., `routes/items.js` or `routes/users.js`)
-
-// 🆕 NEW: Route to update an item
+// Route to update an item
 router.put("/update", async (req, res) => {
   const {
     farmerEmail,
@@ -117,12 +114,10 @@ router.put("/update", async (req, res) => {
   }
 });
 
-// 🆕 NEW: Route to delete an item
-// In your backend route file (e.g., itemsRoutes.js)
+//  Route to delete an item
 
 router.delete("/", async (req, res) => {
-  const { farmerEmail, itemName } = req.body; // Assuming you've switched to query params as advised previously
-
+  const { farmerEmail, itemName } = req.body;
   if (!farmerEmail || !itemName) {
     console.warn("Missing farmer email or item name for delete:", {
       farmerEmail,
@@ -165,10 +160,9 @@ router.delete("/", async (req, res) => {
     }
   } catch (error) {
     console.error("Error deleting item:", error);
-    // --- IMPORTANT CHANGE HERE ---
     res
       .status(500)
-      .json({ error: "Server error deleting item: " + error.message }); // Send JSON error
+      .json({ error: "Server error deleting item: " + error.message });
   }
 });
 
