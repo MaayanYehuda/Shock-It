@@ -1,6 +1,5 @@
 package com.example.shock_it.dialogs;
 
-
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -8,12 +7,10 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
-
 import com.example.shock_it.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -21,7 +18,7 @@ public class EditProductDialogFragment extends DialogFragment {
 
     public interface EditProductDialogListener {
         void onProductEdited(String originalName, String newName, String newDescription, double newPrice);
-        void onProductDeleted(String productName); // Keep this if you want the dialog to handle delete
+        void onProductDeleted(String productName);
     }
 
     private EditProductDialogListener listener;

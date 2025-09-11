@@ -1,5 +1,4 @@
 package com.example.shock_it.ui.map.addMarket;
-// בתוך AddMarketFragment.java
 
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
@@ -11,12 +10,10 @@ import android.icu.util.Calendar;
 import android.location.Address;
 import android.location.Geocoder;
 import android.os.Bundle;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,12 +22,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.shock_it.R;
 import com.example.shock_it.MarketProfileActivity;
-
 import android.content.Intent;
-
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
@@ -101,13 +95,11 @@ public class AddMarketFragment extends Fragment {
                 return;
             }
 
-            // 🌟 שינוי: בדיקת הפורמט מתבצעת כעת על dd/MM/yyyy
             if (!isValidDateFormat(date)) {
                 Toast.makeText(requireContext(), "פורמט תאריך לא תקין. השתמש בפורמט: DD/MM/YYYY", Toast.LENGTH_LONG).show();
                 return;
             }
 
-            // 🌟 שינוי: העברת תאריך בפורמט dd/MM/yyyy ל-isValidMarketTimes
             if (!isValidMarketTimes(date, startTime, endTime)) {
                 return;
             }
@@ -144,7 +136,6 @@ public class AddMarketFragment extends Fragment {
                 public void onCoordinatesReceived(double latitude, double longitude) {
                     String farmerEmail = getFarmerEmail();
                     if (farmerEmail != null) {
-                        // 🌟 שינוי: המרת פורמט התאריך לפני הקריאה ל-viewModel.addMarket
                         String formattedDateForDb = convertToISODate(date);
                         viewModel.addMarket(formattedDateForDb, hours, location, latitude, longitude, farmerEmail);
                     } else {
@@ -194,11 +185,10 @@ public class AddMarketFragment extends Fragment {
 
     private boolean isValidMarketTimes(String date, String startTime, String endTime) {
         try {
-            // 🌟 שינוי: שימוש בפורמט dd/MM/yyyy עבור הקלט של המשתמש
             SimpleDateFormat fullDateTimeFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault());
             fullDateTimeFormat.setLenient(false);
 
-            // 1. בדיקה שהשוק נמשך עד 10 שעות לכל היותר
+            //  בדיקה שהשוק נמשך עד 10 שעות לכל היותר
             Date startDateTime = fullDateTimeFormat.parse(date + " " + startTime);
             Date endDateTime = fullDateTimeFormat.parse(date + " " + endTime);
 
@@ -217,7 +207,7 @@ public class AddMarketFragment extends Fragment {
                 return false;
             }
 
-            // 2. בדיקה שהשעה שברחנו היא לא לפני או בטווח של שעתיים אחרי הזמן הנוכחי
+            // בדיקה שהשעה שברחנו היא לא לפני או בטווח של שעתיים אחרי הזמן הנוכחי
             Calendar now = Calendar.getInstance();
             Calendar marketStart = Calendar.getInstance();
             marketStart.setTime(startDateTime);
@@ -245,7 +235,6 @@ public class AddMarketFragment extends Fragment {
     }
 
     private void setupDateInput() {
-        // 🌟 שינוי: עדכון ההינט למשתמש לפורמט הרצוי
         dateInput.setOnClickListener(v -> showDatePicker());
     }
 
@@ -258,7 +247,6 @@ public class AddMarketFragment extends Fragment {
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 requireContext(),
                 (view, selectedYear, selectedMonth, selectedDay) -> {
-                    // 🌟 שינוי: יצירת מחרוזת תאריך בפורמט dd/MM/yyyy
                     String formattedDate = String.format(Locale.getDefault(), "%02d/%02d/%d",
                             selectedDay, selectedMonth + 1, selectedYear);
                     dateInput.setText(formattedDate);
@@ -270,7 +258,6 @@ public class AddMarketFragment extends Fragment {
 
     private boolean isValidDateFormat(String date) {
         try {
-            // 🌟 שינוי: בדיקת תקינות הקלט על פורמט dd/MM/yyyy
             SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             sdf.setLenient(false);
             sdf.parse(date);
@@ -282,7 +269,6 @@ public class AddMarketFragment extends Fragment {
 
     private String convertToISODate(String date) {
         try {
-            // 🌟 שינוי: המרה מפורמט dd/MM/yyyy לפורמט yyyy-MM-dd
             SimpleDateFormat inputFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
             SimpleDateFormat outputFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
             Date parsedDate = inputFormat.parse(date);

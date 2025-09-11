@@ -3,29 +3,26 @@ package com.example.shock_it.dialogs;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
-import android.text.Editable; // ✅ חדש: ייבוא Editable
-import android.text.InputType; // ✅ חדש: ייבוא InputType
-import android.text.TextWatcher; // ✅ חדש: ייבוא TextWatcher
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText; // ✅ חדש: ייבוא EditText
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-
 import com.example.shock_it.R;
 import classes.Item;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,9 +38,7 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
     private List<Item> farmerProducts;
     private Map<String, Double> itemPricesMap;
     private OnProductsSelectedListener listener;
-    // ✅ שינוי: מפה לשמירת מוצרים נבחרים יחד עם המחירים שהוזנו
     private Map<String, Double> selectedProductsWithPrices;
-    // ✅ חדש: מפה לשמירת הפניות ל-EditText של המחיר עבור כל מוצר
     private Map<String, EditText> productPriceEditTexts;
 
 
@@ -80,8 +75,8 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
         if (itemPricesMap == null) {
             itemPricesMap = new HashMap<>();
         }
-        selectedProductsWithPrices = new HashMap<>(); // ✅ אתחול המפה החדשה
-        productPriceEditTexts = new HashMap<>(); // ✅ אתחול מפת ה-EditTexts
+        selectedProductsWithPrices = new HashMap<>();
+        productPriceEditTexts = new HashMap<>();
     }
 
     @NonNull
@@ -111,15 +106,14 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
         buttonConfirmSelection.setOnClickListener(v -> {
             if (listener != null) {
                 List<JSONObject> selectedProducts = new ArrayList<>();
-                if (selectedProductsWithPrices.isEmpty()) { // ✅ בדיקה לפי המפה החדשה
+                if (selectedProductsWithPrices.isEmpty()) {
                     Toast.makeText(getContext(), "אנא בחר לפחות מוצר אחד.", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
-                // עבור על המוצרים שנבחרו במפה
                 for (Map.Entry<String, Double> entry : selectedProductsWithPrices.entrySet()) {
                     String productName = entry.getKey();
-                    double productPrice = entry.getValue(); // קבל את המחיר המעודכן
+                    double productPrice = entry.getValue();
 
                     try {
                         JSONObject productJson = new JSONObject();
@@ -142,7 +136,6 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
         return builder.create();
     }
 
-    // ✅ שינוי: addProductRow כולל כעת EditText למחיר
     private void addProductRow(LinearLayout container, Item item) {
         LinearLayout rowLayout = new LinearLayout(getContext());
         rowLayout.setOrientation(LinearLayout.HORIZONTAL);
@@ -153,12 +146,12 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
         rowLayout.setPadding(0, 8, 0, 8);
 
         CheckBox checkBox = new CheckBox(getContext());
-        checkBox.setText(item.getName()); // הצג רק את שם המוצר ב-CheckBox
+        checkBox.setText(item.getName());
         checkBox.setTextSize(16);
         checkBox.setLayoutParams(new LinearLayout.LayoutParams(
                 0,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                0.6f // משקל כדי לתת מקום גם ל-EditText
+                0.6f
         ));
 
         EditText priceEditText = new EditText(getContext());
@@ -168,47 +161,42 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
         priceEditText.setLayoutParams(new LinearLayout.LayoutParams(
                 0,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                0.4f // משקל עבור שדה המחיר
+                0.4f
         ));
-        priceEditText.setEnabled(false); // ✅ התחל כלא פעיל
+        priceEditText.setEnabled(false);
 
         // הגדר מחיר ברירת מחדל משדה itemPricesMap
         Double defaultPrice = itemPricesMap.getOrDefault(item.getName(), 0.0);
         priceEditText.setText(String.format(Locale.getDefault(), "%.2f", defaultPrice));
-
-        // ✅ הוסף את ה-EditText למפה לגישה מאוחרת
         productPriceEditTexts.put(item.getName(), priceEditText);
 
-        // מאזין לשינוי מצב תיבת הסימון
         checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            priceEditText.setEnabled(isChecked); // הפעל/בטל את שדה המחיר
+            priceEditText.setEnabled(isChecked);
             if (isChecked) {
-                // כאשר נבחר, הוסף את המוצר עם המחיר הנוכחי מה-EditText
                 try {
                     double currentPrice = Double.parseDouble(priceEditText.getText().toString());
                     selectedProductsWithPrices.put(item.getName(), currentPrice);
                 } catch (NumberFormatException e) {
                     Log.e("SelectProductDialog", "Error parsing price on check: " + priceEditText.getText().toString(), e);
-                    selectedProductsWithPrices.put(item.getName(), defaultPrice); // חזור למחיר ברירת מחדל במקרה שגיאה
+                    selectedProductsWithPrices.put(item.getName(), defaultPrice);
                 }
             } else {
-                selectedProductsWithPrices.remove(item.getName()); // הסר את המוצר מהמפה
+                selectedProductsWithPrices.remove(item.getName());
             }
         });
 
-        // ✅ מאזין לשינויים ב-EditText של המחיר
         priceEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (checkBox.isChecked()) { // רק אם המוצר מסומן
+                if (checkBox.isChecked()) {
                     try {
                         double newPrice = Double.parseDouble(s.toString());
-                        selectedProductsWithPrices.put(item.getName(), newPrice); // עדכן את המחיר במפה
+                        selectedProductsWithPrices.put(item.getName(), newPrice);
                     } catch (NumberFormatException e) {
-                        // אם הקלט לא חוקי, אל תעדכן את המחיר במפה, אך אל תמחק אותו
+
                         Log.e("SelectProductDialog", "Invalid price input for " + item.getName() + ": " + s.toString());
                     }
                 }
@@ -218,9 +206,8 @@ public class SelectProductForMarketDialogFragment extends DialogFragment {
             public void afterTextChanged(Editable s) {}
         });
 
-
         rowLayout.addView(checkBox);
-        rowLayout.addView(priceEditText); // ✅ הוסף את ה-EditText לשורה
+        rowLayout.addView(priceEditText);
         container.addView(rowLayout);
     }
 }

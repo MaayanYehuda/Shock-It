@@ -9,17 +9,13 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
 import com.example.shock_it.R;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-
 import services.Service;
 
 public class RegisterFrag extends Fragment {
@@ -58,7 +54,6 @@ public class RegisterFrag extends Fragment {
         String address = addressInput.getText().toString().trim();
         String confirmPassword = confirmPasswordInput.getText().toString().trim();
 
-        // קבלת ערך הרדיוס (יכול להיות ריק)
         String notificationRadiusStr = notificationRadiusInput.getText().toString().trim();
 
         // ולידציה לשדות חובה
@@ -114,7 +109,6 @@ public class RegisterFrag extends Fragment {
             return;
         }
 
-        // שמירה של המשתנים כ-final או effectively final
         final String finalName = name;
         final String finalEmail = email;
         final String finalPassword = password;

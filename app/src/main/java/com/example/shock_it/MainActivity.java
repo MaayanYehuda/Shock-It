@@ -67,7 +67,6 @@ public class MainActivity extends AppCompatActivity implements
         GoogleMap.OnMarkerClickListener {
 
     private GoogleMap mGoogleMap;
-    // המשתנים הללו ישמשו לטעינה ראשונית, אבל לא לחיפוש
     private double lat = 0.0;
     private double lot = 0.0;
     private FusedLocationProviderClient fusedLocationClient;
@@ -76,12 +75,10 @@ public class MainActivity extends AppCompatActivity implements
     private BottomSheetBehavior<View> bottomSheetBehavior;
     private HashMap<Marker, Market> markerMarketMap = new HashMap<>();
     private EditText searchEditText;
-    // עכשיו זהו כפתור מסוג Button כפי שהגדרנו ב-XML
     private ImageButton searchButton;
     private ImageButton clearSearchButton;
     private ImageButton backButton;
 
-    // A list to store the initial markets for the "back" button functionality
     private List<Object> initialCombinedResults = new ArrayList<>();
     private List<Object> combinedResults = new ArrayList<>();
     private SearchResultAdapter searchResultAdapter;
@@ -132,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements
 
         View bottomSheet = findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
-        bottomSheetBehavior.setPeekHeight(200); // Updated peek height to show the full search bar
+        bottomSheetBehavior.setPeekHeight(200);
         bottomSheetBehavior.setHideable(false);
         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
 
@@ -142,8 +139,6 @@ public class MainActivity extends AppCompatActivity implements
         // Click listener for the new clear button
         clearSearchButton.setOnClickListener(v -> {
             searchEditText.setText("");
-            // Optionally, restore the original market list here as well
-            // restoreInitialMarkets();
         });
 
         // Click listener for the new back button
@@ -203,12 +198,9 @@ public class MainActivity extends AppCompatActivity implements
             public void handleOnBackPressed() {
                 FragmentManager fragmentManager = getSupportFragmentManager();
 
-                // 1. בודקים אם יש פרגמנט במחסנית
                 if (fragmentManager.getBackStackEntryCount() > 0) {
-                    // אם יש: מאפשרים התנהגות חזרה רגילה (הוצאת הפרגמנט)
                     fragmentManager.popBackStack();
 
-                    // 2. מחזירים את הנראות של הרכיבים הראשיים
                     View mapContainer = findViewById(R.id.map_container);
                     View fragmentContainer = findViewById(R.id.fragment_container_farmer_profile);
                     FloatingActionButton fab = findViewById(R.id.farmerButton);
@@ -217,21 +209,18 @@ public class MainActivity extends AppCompatActivity implements
                     if (mapContainer != null) mapContainer.setVisibility(View.VISIBLE);
                     if (fab != null) fab.setVisibility(View.VISIBLE);
 
-                    // מחזירים את ה-BottomSheet למצב COLLAPSED ומונעים הסתרה
                     if (bottomSheetContent != null && bottomSheetBehavior != null) {
                         bottomSheetContent.setVisibility(View.VISIBLE);
                         bottomSheetBehavior.setHideable(false); // חזרה למצב המקורי
                         bottomSheetBehavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
                     }
 
-                    // מסתירים את קונטיינר הפרגמנט
                     if (fragmentContainer != null) fragmentContainer.setVisibility(View.GONE);
 
                 } else {
-                    // אם אין: מאפשרים לאפליקציה לצאת
                     setEnabled(false);
                     onBackPressed();
-                    setEnabled(true); // מחזירים מצב כדי שה-Callback יעבוד שוב בכניסה הבאה
+                    setEnabled(true);
                 }
             }
         };
@@ -320,7 +309,6 @@ public class MainActivity extends AppCompatActivity implements
                         searchResults.add(farmer);
                         Log.d("MainActivity", "Found Farmer: " + name);
 
-                        // ** שינוי קריטי כאן: פענוח ושיטוח רשימת השווקים של החקלאי **
                         if (obj.has("participatingMarkets")) {
                             JSONArray participatingMarketsJson = obj.getJSONArray("participatingMarkets");
                             for (int j = 0; j < participatingMarketsJson.length(); j++) {
@@ -359,7 +347,6 @@ public class MainActivity extends AppCompatActivity implements
     }
 
 
-    // --- פונקציות קיימות (שינוי קל ב-enableMyLocation) ---
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -399,7 +386,6 @@ public class MainActivity extends AppCompatActivity implements
                             LatLng defaultLocation = new LatLng(32.0853, 34.7818); // Tel Aviv
                             mGoogleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(defaultLocation, 12));
                         }
-                        // Now that we have the location, load the initial markets
                         loadMarkets();
                     });
         }
@@ -444,7 +430,6 @@ public class MainActivity extends AppCompatActivity implements
         }).start();
     }
 
-    // New helper method to update UI with any list of results
     private void updateUIWithResults(List<Object> results) {
         combinedResults.clear();
         combinedResults.addAll(results);
@@ -520,19 +505,16 @@ public class MainActivity extends AppCompatActivity implements
     public void onFarmerClick(Farmer farmer) {
         Log.d("MainActivity", "Farmer clicked. Navigating to farmer profile fragment locally. Email: " + farmer.getEmail());
 
-        // 1. הסתרת המקלדת
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null && getCurrentFocus() != null) {
             imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
         }
 
-        // 2. הכנת ה-Fragment וה-Bundle
         farmerProfile farmerProfileFragment = new farmerProfile();
         Bundle args = new Bundle();
         args.putString("farmer_email_key", farmer.getEmail());
         farmerProfileFragment.setArguments(args);
 
-        // 3. שינוי נראות הרכיבים
         Log.d("MainActivity", "Hiding main UI elements...");
 
         View mapContainer = findViewById(R.id.map_container);
@@ -540,25 +522,20 @@ public class MainActivity extends AppCompatActivity implements
         FloatingActionButton fab = findViewById(R.id.farmerButton);
         View bottomSheetContent = findViewById(R.id.bottom_sheet);
 
-        // הסתרת המפה
         if (mapContainer != null) mapContainer.setVisibility(View.GONE);
 
-        // הסתרת הכפתור הצף
         if (fab != null) fab.setVisibility(View.GONE);
 
-        // הסתרת ה-BottomSheet (שמכיל את ה-RecyclerView ואת סרגל החיפוש)
         if (bottomSheetContent != null && bottomSheetBehavior != null) {
             bottomSheetContent.setVisibility(View.GONE);
             bottomSheetBehavior.setHideable(true);
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
         }
 
-        // 4. הצגת ה-Container וביצוע החלפת ה-Fragment
         if (fragmentContainer != null) {
             fragmentContainer.setVisibility(View.VISIBLE);
             Log.d("MainActivity", "Farmer profile container set to VISIBLE.");
 
-            // ביצוע החלפת ה-Fragment
             FragmentManager fragmentManager = getSupportFragmentManager();
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
             fragmentTransaction.replace(R.id.fragment_container_farmer_profile, farmerProfileFragment);

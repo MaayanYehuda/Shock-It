@@ -2,20 +2,16 @@ package com.example.shock_it.manageMarket;
 
 import android.app.Application;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import services.Service;
 
 public class ManageMarketViewModel extends AndroidViewModel {
@@ -34,13 +30,6 @@ public class ManageMarketViewModel extends AndroidViewModel {
         super(application);
     }
 
-    /**
-     * מזמין חקלאי לשוק ספציפי.
-     * הקריאה ל-Service מתבצעת ב-Thread נפרד.
-     * @param marketId ה-ID של השוק אליו מזמינים.
-     * @param invitedEmail המייל של החקלאי המוזמן.
-     * @param inviterEmail המייל של החקלאי המזמין (מנהל השוק).
-     */
     public void inviteFarmerToMarket(String marketId, String invitedEmail, String inviterEmail) {
         _isLoading.setValue(true);
 
@@ -74,20 +63,14 @@ public class ManageMarketViewModel extends AndroidViewModel {
         }).start();
     }
 
-    /**
-     * מחפש חקלאים לפי שאילתת חיפוש.
-     * הקריאה ל-Service מתבצעת ב-Thread נפרד.
-     * @param query מחרוזת החיפוש (שם או מייל).
-     */
     public void searchFarmers(String query) {
         _isLoading.setValue(true);
-        // 🌟 שינוי: קוראים ל-setValue ישירות על המשתנה הפנימי
-        _searchErrorMessage.setValue(null); // נקה הודעות שגיאה קודמות, קריאה ב-Main Thread
+        _searchErrorMessage.setValue(null);
 
         if (query == null || query.trim().isEmpty()) {
             _searchErrorMessage.postValue("אנא הכנס שם או אימייל לחיפוש. 🔍");
             _isLoading.postValue(false);
-            _searchResults.postValue(new ArrayList<>()); // נקה תוצאות קודמות
+            _searchResults.postValue(new ArrayList<>());
             return;
         }
 
@@ -131,21 +114,11 @@ public class ManageMarketViewModel extends AndroidViewModel {
         }).start();
     }
 
-    /**
-     * פונקציה לניקוי הודעת שגיאה של חיפוש חקלאים.
-     * נקראת מה-Fragment כדי לבקש מה-ViewModel לנקות את המצב.
-     */
     public void clearSearchErrorMessage() {
-        // 🌟 חדש: נקרא מ-Fragment, מתבצע ב-Main Thread, לכן משתמשים ב-setValue
         _searchErrorMessage.setValue(null);
     }
 
-    /**
-     * פונקציה לניקוי תוצאות החיפוש.
-     * נקראת מה-Fragment כדי לבקש מה-ViewModel לנקות את התוצאות.
-     */
     public void clearSearchResults() {
-        // 🌟 חדש: נקרא מ-Fragment, מתבצע ב-Main Thread, לכן משתמשים ב-setValue
         _searchResults.setValue(new ArrayList<>());
     }
 }

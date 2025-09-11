@@ -4,26 +4,21 @@ import android.annotation.SuppressLint;
 import android.app.Application;
 import android.os.Build;
 import android.util.Log;
-
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import classes.Farmer;
 import classes.Market;
 import services.Service;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter; // Added
-import java.time.format.DateTimeParseException; // Added
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-
 public class MapViewModel extends AndroidViewModel {
 
     private MutableLiveData<List<Object>> locationsLiveData;
@@ -85,7 +80,6 @@ public class MapViewModel extends AndroidViewModel {
             try {
                 String response = null;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    // Note: LocalDate.now().toString() returns YYYY-MM-DD
                     response = Service.getOrderedMarkets(userLat, userLon, LocalDate.now().toString());
                 }
                 List<Object> fetchedLocations = parseMarketsFromJson(response);
@@ -185,11 +179,9 @@ public class MapViewModel extends AndroidViewModel {
             return null;
         }
 
-        // Try YYYY-MM-DD first (ISO 8601 standard)
         try {
             return LocalDate.parse(dateStr, DateTimeFormatter.ISO_LOCAL_DATE);
         } catch (DateTimeParseException e) {
-            // If that fails, try DD/MM/YYYY
             try {
                 DateTimeFormatter formatterDMY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
                 return LocalDate.parse(dateStr, formatterDMY);

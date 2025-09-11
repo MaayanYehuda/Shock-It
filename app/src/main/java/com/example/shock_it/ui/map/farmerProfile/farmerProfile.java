@@ -12,29 +12,23 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.shock_it.AddProductDialogFragment;
 import com.example.shock_it.MarketProfileActivity;
 import com.example.shock_it.R;
 import com.example.shock_it.ProductAdapter;
 import com.example.shock_it.dialogs.EditProductDialogFragment;
 import com.example.shock_it.dialogs.EditProfileDialogFragment;
-
-import java.util.Map;
 import java.util.TreeSet;
-
 import classes.Farmer;
 import classes.FarmerMarket;
 import classes.Item;
 
-// Implement the new interface from ProductAdapter
 public class farmerProfile extends Fragment implements ProductAdapter.OnProductActionListener {
 
     private FarmerProfileViewModel viewModel;
@@ -65,7 +59,6 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Initialize viewModel once at the beginning
         viewModel = new ViewModelProvider(this).get(FarmerProfileViewModel.class);
 
         SharedPreferences prefs = requireActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
@@ -94,7 +87,6 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
 
         viewModel.getFarmer().observe(getViewLifecycleOwner(), farmer -> {
             if (farmer != null) {
-                // 🆕 הלוג הזה קריטי - הוא יראה לנו מה הערכים האמיתיים של האובייקט
                 Log.d("FarmerProfileFragment", "Observed Farmer object -> Phone: " + farmer.getPhone() + ", Radius: " + farmer.getNotificationRadius());
 
                 nameTextView.setText(farmer.getName());
@@ -200,7 +192,6 @@ public class farmerProfile extends Fragment implements ProductAdapter.OnProductA
 
             @Override
             public void onProductDeleted(String productName) {
-                // Not used here, handled by onDeleteProduct
             }
         });
         dialog.show(getParentFragmentManager(), "EditProductDialog");

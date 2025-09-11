@@ -10,21 +10,16 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.graphics.Color;
 import android.content.res.ColorStateList;
-import android.view.Gravity; // ✅ חדש: ייבוא Gravity
-
+import android.view.Gravity;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.DialogFragment;
-
 import com.example.shock_it.R;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;

@@ -34,6 +34,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import classes.Item;
@@ -47,7 +48,6 @@ import com.example.shock_it.dialogs.PendingRequestsDialogFragment;
 
 public class MarketProfileActivity extends AppCompatActivity implements MarketProfileContract.View {
 
-    // רכיבי UI
     Button backToMainButton;
     Button navigateButton;
     Button manageMarketButton;
@@ -65,8 +65,8 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     String date;
     String marketId;
     String userEmail;
+    private double marketLat, marketLon;
 
-    // Presenter instance
     private MarketProfileContract.Presenter presenter;
 
     @Override
@@ -91,16 +91,15 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         fabAcceptInvite = findViewById(R.id.fab_accept_invite);
         fabDeclineInvite = findViewById(R.id.fab_decline_invite);
 
-        // קבלת מייל המשתמש מה-SharedPreferences
+        // קבלת מייל המשתמש
         SharedPreferences prefs = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         userEmail = prefs.getString("user_email", null);
         Log.d("MarketProfileActivity", "Logged-in user email: " + userEmail);
 
         // אתחול ה-Presenter
-        presenter = new MarketProfilePresenter(userEmail, null); // marketId יועבר במתודות, לא צריך לאתחל כאן
+        presenter = new MarketProfilePresenter(userEmail, null);
         presenter.attachView(this);
 
-        // טיפול ב-Intent וטעינת פרופיל השוק
         processIntentAndLoadMarket(getIntent());
 
         // הגדרות ראשוניות לכפתורים
@@ -124,8 +123,13 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         });
 
         navigateButton.setOnClickListener(v -> {
-            openWazeNavigation("32.0853,34.7818");
+            if (marketLat != 0.0 && marketLon != 0.0) {
+                openWazeNavigation(marketLat, marketLon);
+            } else {
+                Toast.makeText(this, "מיקום השוק אינו זמין.", Toast.LENGTH_SHORT).show();
+            }
         });
+
 
         manageMarketButton.setOnClickListener(v -> {
             if (marketId == null || marketId.isEmpty()) {
@@ -247,9 +251,9 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         fragmentManager.executePendingTransactions();
     }
 
-    private void openWazeNavigation(String coordinates) {
+    private void openWazeNavigation(double lat, double lon) {
         try {
-            String url = "https://waze.com/ul?ll=" + coordinates + "&navigate=yes";
+            String url = String.format(Locale.US, "https://waze.com/ul?ll=%.6f,%.6f&navigate=yes", lat, lon);
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             intent.setPackage("com.waze");
             startActivity(intent);
@@ -276,24 +280,23 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
     }
 
     @Override
-    public void displayMarketProfile(String name, String hours) {
+    public void displayMarketProfile(String name, String hours, double lat, double lon) {
         runOnUiThread(() -> {
+            this.marketLat = lat;
+            this.marketLon = lon;
             marketName.setText(name);
             marketHours.setText(" שעות: " + hours);
+            Log.d("MarketProfileActivity", "Market coordinates received: Lat=" + lat + ", Lon=" + lon);
         });
     }
 
-    // ✅ שינוי: קבלת isUserFounder ישירות מה-Presenter
+    //   קבלת isUserFounder ישירות מה-Presenter
     @Override
     public void updateFabState(boolean isUserFounder, boolean isParticipating, boolean isInvited, boolean isRequestPending) {
         if(userEmail!=null){
         runOnUiThread(() -> {
             int activeColor = Color.parseColor("#42A5F5");
             int disabledColor = Color.parseColor("#BDBDBD");
-
-            // ✅ ודא ש-marketId של ה-Activity מעודכן.
-            // הוא אמור להגיע מה-Intent ב-processIntentAndLoadMarket.
-            // אם הוא עדיין null/ריק, זה מצביע על בעיה באופן שבו ה-Activity נפתח.
 
             if (this.marketId == null || this.marketId.isEmpty()) {
                 Log.e("MarketProfileActivity", "marketId is null or empty in updateFabState. Cannot determine button visibility.");
@@ -303,7 +306,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 return;
             }
 
-            // --- לוגיקה עבור כפתורי המייסד (manageMarketButton ו-viewRequestsButton) ---
+            //  לוגיקה עבור כפתורי המייסד (manageMarketButton ו-viewRequestsButton)
             Log.d("ButtonVisibility", "updateFabState: isUserFounder = " + isUserFounder);
             if (isUserFounder) {
                 // אם המשתמש הוא מייסד השוק
@@ -314,9 +317,7 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 viewRequestsButton.setEnabled(true);
                 Log.d("ButtonVisibility", "Founder buttons (Manage Market, View Requests) set VISIBLE and ENABLED.");
             } else {
-                // אם המשתמש אינו מייסד השוק
                 manageMarketCard.setVisibility(View.GONE);
-
                 manageMarketButton.setVisibility(View.GONE);
                 manageMarketButton.setEnabled(false);
                 viewRequestsButton.setVisibility(View.GONE);
@@ -324,13 +325,13 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 Log.d("ButtonVisibility", "Founder buttons (Manage Market, View Requests) set GONE and DISABLED.");
             }
 
-            // --- לוגיקה עבור כפתור הוספת מוצר (fabAddProduct) ---
+            //  לוגיקה עבור כפתור הוספת מוצר (fabAddProduct)
             Log.d("ButtonVisibility", "updateFabState: isParticipating = " + isParticipating +
                     ", isRequestPending = " + isRequestPending +
                     ", isInvited = " + isInvited);
 
             if (isParticipating) {
-                // אם המשתמש משתתף בשוק (כולל המייסד, שכבר נחשב משתתף)
+                // אם המשתמש משתתף בשוק
                 fabAddProduct.setVisibility(View.VISIBLE);
                 fabAddProduct.setEnabled(true);
                 fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
@@ -338,7 +339,6 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 fabAddProduct.setOnClickListener(v -> presenter.handleAddProductClick(userEmail, marketId, false));
                 Log.d("ButtonVisibility", "FAB set to ADD PRODUCT (User is Participating).");
             } else if (isRequestPending) {
-                // אם למשתמש יש בקשת הצטרפות ממתינה
                 fabAddProduct.setVisibility(View.VISIBLE); // או GONE אם לא רוצים להציג כלל
                 fabAddProduct.setEnabled(false); // לא ניתן ללחוץ שוב
                 fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(disabledColor)); // צבע אפור
@@ -346,14 +346,10 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                 fabAddProduct.setOnClickListener(null); // אין פעולה בלחיצה
                 Log.d("ButtonVisibility", "FAB set to PENDING REQUEST (User has pending request).");
             } else if (isInvited) {
-                // מסתיר את הכפתור הכתום הרגיל
                 fabAddProduct.setVisibility(View.GONE);
-
-                // מציג את שני כפתורי ההזמנה
                 fabAcceptInvite.setVisibility(View.VISIBLE);
                 fabDeclineInvite.setVisibility(View.VISIBLE);
 
-                // מאזין לאישור
                 fabAcceptInvite.setOnClickListener(v -> {
                     presenter.handleInvitationAcceptance(userEmail, marketId);
                     fabAcceptInvite.setVisibility(View.GONE);
@@ -361,7 +357,6 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
                     fabAddProduct.setVisibility(View.VISIBLE);
                 });
 
-                // מאזין לדחייה
                 fabDeclineInvite.setOnClickListener(v -> {
                     presenter.handleInvitationDecline(userEmail, marketId);
                     fabAcceptInvite.setVisibility(View.GONE);
@@ -371,12 +366,11 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
 
                 Log.d("ButtonVisibility", "Showing INVITE ACCEPT/DECLINE FABs");
             } else {
-                // אם המשתמש לא מייסד, לא משתתף, לא הוזמן ולא שלח בקשה
-                fabAddProduct.setVisibility(View.VISIBLE); // או GONE אם לא רוצים להציג כלל
+                fabAddProduct.setVisibility(View.VISIBLE);
                 fabAddProduct.setEnabled(true);
                 fabAddProduct.setBackgroundTintList(ColorStateList.valueOf(activeColor));
-                fabAddProduct.setImageResource(R.drawable.ic_send); // אייקון של שליחה
-                fabAddProduct.setOnClickListener(v -> presenter.handleAddProductClick(userEmail, marketId, true)); // שלח בקשת הצטרפות
+                fabAddProduct.setImageResource(R.drawable.ic_send);
+                fabAddProduct.setOnClickListener(v -> presenter.handleAddProductClick(userEmail, marketId, true));
                 Log.d("ButtonVisibility", "FAB set to SEND JOIN REQUEST (User is not involved).");
             }
         });
@@ -417,7 +411,6 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
             farmersListContainer.addView(noFarmers);
         });
     }
-
     @Override
     public void showToast(String message) {
         runOnUiThread(() -> {
@@ -454,15 +447,12 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
             SelectProductForMarketDialogFragment dialog =
                     SelectProductForMarketDialogFragment.newInstance(farmerProducts, itemPricesMap);
 
-            // ✅ שינוי: ה-listener כעת מקבל List<JSONObject>
             dialog.setOnProductSelectedListener(selectedProducts -> {
                 if (selectedProducts != null && !selectedProducts.isEmpty()) {
                     if (isJoinRequest) {
-                        // ✅ עבור בקשת הצטרפות, שלח את כל הרשימה ל-Presenter
+                        //  עבור בקשת הצטרפות, שלח את כל הרשימה ל-Presenter
                         presenter.sendJoinRequest(userEmail, marketId, selectedProducts);
                     } else {
-                        // ✅ עבור הוספת מוצר לשוק קיים, נצטרך לולאה אם רוצים להוסיף מספר מוצרים
-                        // נניח ש-addProductToMarket ב-Presenter מטפלת במוצר בודד בכל קריאה
                         for (JSONObject productJson : selectedProducts) {
                             presenter.addProductToMarket(userEmail, marketId, productJson);
                         }
@@ -475,7 +465,6 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         });
 
     }
-
     @Override
     public void refreshMarketProfile() {
         runOnUiThread(() -> {
@@ -514,18 +503,14 @@ public class MarketProfileActivity extends AppCompatActivity implements MarketPr
         Bundle args = new Bundle();
         args.putString("farmer_email_key", farmerEmail);
         farmerProfileFragment.setArguments(args);
-
         marketProfileContentScrollView.setVisibility(View.GONE);
         findViewById(R.id.fragment_container_farmer_profile).setVisibility(View.VISIBLE);
-
         fabAddProduct.setVisibility(View.GONE);
-
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
         fragmentTransaction.replace(R.id.fragment_container_farmer_profile, farmerProfileFragment);
         fragmentTransaction.addToBackStack("farmerProfile");
         fragmentTransaction.commit();
-
         Toast.makeText(this, "טוען פרופיל של: " + farmerEmail, Toast.LENGTH_SHORT).show();
     }
 }

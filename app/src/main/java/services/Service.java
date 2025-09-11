@@ -1,11 +1,9 @@
 package services;
 
 import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONArray; // נשאר כי הוא נחוץ לניתוח JSON במקומות אחרים
-
+import org.json.JSONArray;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,14 +16,12 @@ import java.net.URL;
 import java.net.URLEncoder;
 
 public class Service {
-    // ⚠️ וודא שזה ה-IP הנכון של השרת שלך!
-    // אם אתה מריץ על אמולטור: "http://10.0.2.2:3000"
-    // אם אתה מריץ על מכשיר פיזי באותה רשת Wi-Fi: "http://192.168.1.10:3000" (או ה-IP הספציפי שלך)
-    private final static String spec = "http://192.168.0.105:3000"; // השארתי את ה-IP ששלחת
+    // for the emulator: "http://10.0.2.2:3000"
+    private final static String spec = "http://192.168.0.109:3000"; // current ip
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
-        Log.d("Service", "Attempting GET request to: " + url.toString()); // זה הלוג החשוב!
+        Log.d("Service", "Attempting GET request to: " + url.toString());
         HttpURLConnection conn = (HttpURLConnection)url.openConnection();
         conn.setRequestMethod("GET");
         InputStream in = new BufferedInputStream(conn.getInputStream());
@@ -112,27 +108,25 @@ public class Service {
         URL url = new URL(spec + "/" + path);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-        conn.setRequestMethod("DELETE"); // שינוי ל-DELETE
-        conn.setDoOutput(true); // מאפשר שליחת גוף בקשה עם DELETE
+        conn.setRequestMethod("DELETE");
+        conn.setDoOutput(true);
         conn.setDoInput(true);
         conn.connect();
 
-        // שליחת הנתונים בגוף הבקשה
         OutputStreamWriter writer = new OutputStreamWriter(conn.getOutputStream(), "UTF-8");
         writer.write(data);
         writer.close();
 
-        // קריאת התגובה מהשרת
         StringBuffer jsonString = new StringBuffer();
-        int responseCode = conn.getResponseCode(); // קבלת קוד התגובה
-        if (responseCode >= 200 && responseCode < 300) { // הצלחה (2xx)
+        int responseCode = conn.getResponseCode();
+        if (responseCode >= 200 && responseCode < 300) {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     jsonString.append(line);
                 }
             }
-        } else { // שגיאה (4xx, 5xx)
+        } else {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
@@ -252,7 +246,7 @@ public class Service {
         return response;
     }
 
-    // 🆕 הוספה: searchFarmers
+    //   searchFarmers
     public static String searchFarmers(String query) throws IOException {
         String encodedQuery = URLEncoder.encode(query, "UTF-8");
         String path = "markets/searchFarmers?query=" + encodedQuery;
@@ -261,7 +255,7 @@ public class Service {
         return response;
     }
 
-    // 🆕 הוספה: getInvitations
+    // getInvitations
     public static String getInvitations(String email) throws IOException {
         String encodedEmail = URLEncoder.encode(email, "UTF-8");
         String path = "markets/invitations/" + encodedEmail;
@@ -270,7 +264,7 @@ public class Service {
         return response;
     }
 
-    // 🆕 הוספה: acceptInvitation
+    //  acceptInvitation
     public static String acceptInvitation(String email, String marketId) throws IOException, JSONException {
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("email", email);
@@ -285,7 +279,7 @@ public class Service {
         jsonParam.put("email", email);
         jsonParam.put("marketId", marketId);
         String response = delete("markets/declineInvitation", jsonParam.toString());
-        Log.d("DeclineInvitation", "Server response: " + response); // שינוי לוג
+        Log.d("DeclineInvitation", "Server response: " + response);
         return response;
     }
 
@@ -297,7 +291,7 @@ public class Service {
         return response;
     }
     public static String addProductToMarketWithWillBe(String farmerEmail, String marketId, String itemName, double price) throws IOException, JSONException {
-        String path = String.format("markets/%s/add-product", marketId); // נתיב יחסי ל-BASE_URL
+        String path = String.format("markets/%s/add-product", marketId);
         JSONObject jsonBody = new JSONObject();
         jsonBody.put("farmerEmail", farmerEmail);
         jsonBody.put("itemName", itemName);
@@ -311,7 +305,6 @@ public class Service {
         jsonParam.put("name", name);
         jsonParam.put("phone", phone);
         jsonParam.put("address", address);
-        // 🆕 חדש: הוספת הקואורדינטות והרדיוס ל-JSON
         jsonParam.put("longitude", longitude);
         jsonParam.put("latitude", latitude);
         jsonParam.put("notificationRadius", notificationRadius);
@@ -326,7 +319,7 @@ public class Service {
         jsonParam.put("newItemName", newItemName);
         jsonParam.put("newPrice", newPrice);
         jsonParam.put("newDescription", newDescription);
-        String response = put("items/update", jsonParam.toString()); // Assuming a PUT /items/update route
+        String response = put("items/update", jsonParam.toString());
         Log.d("Service", "editItem server response: " + response);
         return response;
     }
@@ -336,7 +329,7 @@ public class Service {
         jsonParam.put("farmerEmail", farmerEmail);
         jsonParam.put("itemName", itemName);
         Log.d("Service", "Sending delete request for farmer: " + farmerEmail + ", item: " + itemName + " with payload: " + jsonParam.toString());
-        String response = delete("items/", jsonParam.toString()); // Assuming a DELETE /items/delete route
+        String response = delete("items/", jsonParam.toString());
         Log.d("Service", "deleteItem server response: " + response);
         return response;
     }
@@ -344,8 +337,8 @@ public class Service {
     public static String sendJoinRequestToMarket(String marketId, String email, JSONArray products) throws IOException, JSONException {
         try {
             JSONObject jsonParam = new JSONObject();
-            jsonParam.put("email", email); // או farmerEmail אם זה מה שנדרש
-            jsonParam.put("products", products); // JSONArray של אובייקטים עם name ו-price
+            jsonParam.put("email", email);
+            jsonParam.put("products", products);
             String path = "markets/" + marketId + "/request";
             Log.d("SendRequest", "Sending: " + jsonParam.toString());
             String response = post(path, jsonParam.toString());
@@ -375,7 +368,7 @@ public class Service {
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("farmerEmail", farmerEmail);
         String path = "markets/" + marketId + "/requests/decline";
-        return put(path, jsonParam.toString()); // ✅ שינוי: קריאה למתודת ה-PUT החדשה
+        return put(path, jsonParam.toString());
     }
 
     // ב-services/Service.java
@@ -394,15 +387,9 @@ public class Service {
 
     public static String search(String query, double userLat, double userLon) throws IOException {
         try {
-            // זה התיקון העיקרי: מקודדים רק את מילת החיפוש
             String encodedQuery = URLEncoder.encode(query, "UTF-8");
-
-            // בונים את הנתיב עם הפרמטרים, ללא קידוד של המספרים
             String path = "markets/search?query=" + encodedQuery + "&userLat=" + userLat + "&userLon=" + userLon;
-
-            // הדפסה ליומן לצורך בדיקה
             System.out.println("Final URL being sent: " +spec + path);
-
             return get(path);
         } catch (UnsupportedEncodingException e) {
             throw new IOException("Error encoding search query", e);

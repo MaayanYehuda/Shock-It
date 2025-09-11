@@ -5,20 +5,16 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.os.Build;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
-
 import classes.Farmer;
 import classes.FarmerMarket;
 import classes.Item;
@@ -45,7 +41,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
 
         new Thread(() -> {
             try {
-                // 1. Fetch basic farmer profile data
+                //Fetch basic farmer profile data
                 String profileResponse = Service.getUserProfile(email);
                 Log.d("FarmerProfileVM", "Server response for profile: " + profileResponse);
                 JSONObject profileJson = new JSONObject(profileResponse);
@@ -57,15 +53,13 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                 double notificationRadius = profileJson.optDouble("notificationRadius", 0.0);
                 double longitude = profileJson.optDouble("longitude", 0.0);
                 double latitude = profileJson.optDouble("latitude", 0.0);
-                String password = profileJson.optString("password", null); // שינוי: קליטת הסיסמה מהשרת, אך עדיין לא נשתמש בה
+                String password = profileJson.optString("password", null);
 
-                // 🆕 שורה מתוקנת: סדר הפרמטרים תואם כעת לקונסטרקטור של קלאס Farmer
                 Farmer currentFarmer = new Farmer(name, farmerEmail, password, phone, address, latitude, longitude, (int) (notificationRadius));
 
-                // 🆕 הדפסת לוג חדשה כדי לוודא את הנתונים שנקלטו
                 Log.d("FarmerProfileVM", "Loaded profile data -> Name: " + name + ", Phone: " + currentFarmer.getPhone() + ", Address: " + address + ", Radius: " + notificationRadius);
 
-                // 2. Fetch farmer's products and add to the Farmer object
+                // Fetch farmer's products and add to the Farmer object
                 String productsResponse = Service.getFarmerItems(email);
                 JSONArray itemsArray = new JSONArray(productsResponse);
                 for (int i = 0; i < itemsArray.length(); i++) {
@@ -77,7 +71,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
                     currentFarmer.addProduct(newItem, price);
                 }
 
-                // 3. Fetch farmer's participating markets and add to the Farmer object
+                //Fetch farmer's participating markets and add to the Farmer object
                 String marketsResponse = Service.marketsByEmail(email);
                 JSONArray marketsArray = new JSONArray(marketsResponse);
                 for (int i = 0; i < marketsArray.length(); i++) {
@@ -132,9 +126,7 @@ public class FarmerProfileViewModel extends AndroidViewModel {
     public void updateFarmerProfile(String email, String name, String phone, String address, String notificationRadiusStr) {
         new Thread(() -> {
             try {
-                // 🆕 הדפסת לוג חדשה כדי לוודא את הנתונים שנשלחים
                 Log.d("FarmerProfileVM", "Updating profile with -> Name: " + name + ", Phone: " + phone + ", Address: " + address + ", Radius: " + notificationRadiusStr);
-
                 double longitude = 0;
                 double latitude = 0;
                 double notificationRadius = Double.parseDouble(notificationRadiusStr);

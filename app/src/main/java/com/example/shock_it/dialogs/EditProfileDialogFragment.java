@@ -6,14 +6,11 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
-
 import com.example.shock_it.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -69,7 +66,6 @@ public class EditProfileDialogFragment extends DialogFragment {
         etAddress.setText(currentAddress);
         etNotificationRadius.setText(currentNotificationRadius);
 
-        // 🆕 הוספת שורת לוג חדשה כדי לוודא את הנתונים בתוך הדיאלוג
         Log.d("EditProfileDialog", "Data received by dialog -> Phone: " + currentPhone + ", Radius: " + currentNotificationRadius);
 
 

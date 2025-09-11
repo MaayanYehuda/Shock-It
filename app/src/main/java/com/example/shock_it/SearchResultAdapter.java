@@ -6,10 +6,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.shock_it.ui.map.MarketAdapter;
 import java.util.List;
 import classes.Farmer;
 import classes.Market;
@@ -17,7 +15,7 @@ import classes.Market;
 public class SearchResultAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     public interface OnSearchResultClickListener {
         void onMarketClick(Market market);
-        void onFarmerClick(Farmer farmer); // 🌟 הוספת מתודת הלחיצה על חקלאי
+        void onFarmerClick(Farmer farmer);
     }
 
     private static final String TAG = "SearchResultAdapter";
@@ -92,8 +90,6 @@ public class SearchResultAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             Farmer farmer = (Farmer) item;
             FarmerViewHolder farmerHolder = (FarmerViewHolder) holder;
 
-            // הוספת שורת הדפסה שתדפיס את הנתונים
-            // זה יעזור לנו לאשר שהנתונים אכן מגיעים לאדפטר
             Log.d(TAG, "Binding Farmer at position " + position + ". Name: " + farmer.getName() + ", Email: " + farmer.getEmail());
 
             if (farmerHolder.farmerName != null) {

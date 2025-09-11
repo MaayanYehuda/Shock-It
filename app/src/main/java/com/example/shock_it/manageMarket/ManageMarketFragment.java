@@ -2,10 +2,8 @@ package com.example.shock_it.manageMarket;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent; // 🆕 Import Intent
 import android.content.SharedPreferences;
 import android.os.Bundle;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -14,7 +12,6 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,22 +22,15 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.shock_it.R;
-// 🔴 תיקון: הסר את הייבוא המיותר של MarketProfileActivity
-// import com.example.shock_it.MarketProfileActivity;
-
 import java.util.ArrayList;
-import java.util.List;
+
 
 public class ManageMarketFragment extends Fragment {
 
     private ManageMarketViewModel viewModel;
-
-    private TextView marketIdTextView;
     private EditText farmerEmailEditText;
     private Button inviteFarmerButton;
-
     private EditText searchFarmerEditText;
     private ImageButton searchFarmerButton;
     private TextView searchResultsTextView;
@@ -49,15 +39,9 @@ public class ManageMarketFragment extends Fragment {
     private final long DEBOUNCE_DELAY = 500L;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
-
     private String marketId;
     private String inviterEmail;
-
-    // 🆕 Declare new buttons
-    private Button buttonBackToAddMarket;
     private Button buttonGoToMarketProfile;
-
-    // 🆕 הוסף משתנים לשמירת המיקום והתאריך
     private String marketLocation;
     private String marketDate;
 
@@ -68,19 +52,13 @@ public class ManageMarketFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_manage_market, container, false);
 
-        marketIdTextView = view.findViewById(R.id.textViewMarketId);
         farmerEmailEditText = view.findViewById(R.id.editTextFarmerEmail);
         inviteFarmerButton = view.findViewById(R.id.buttonInviteFarmer);
-
         searchFarmerEditText = view.findViewById(R.id.editTextSearchFarmer);
         searchFarmerButton = view.findViewById(R.id.buttonSearchFarmer);
         searchResultsTextView = view.findViewById(R.id.textViewSearchResults);
         farmersResultsListView = view.findViewById(R.id.listViewFarmersResults);
-
-        // 🆕 Initialize new buttons
-        buttonBackToAddMarket = view.findViewById(R.id.buttonBackToAddMarket);
         buttonGoToMarketProfile = view.findViewById(R.id.buttonGoToMarketProfile);
-
         viewModel = new ViewModelProvider(this).get(ManageMarketViewModel.class);
 
         if (getArguments() != null) {
@@ -88,12 +66,7 @@ public class ManageMarketFragment extends Fragment {
             marketLocation = getArguments().getString("market_location");
             marketDate = getArguments().getString("market_date");
 
-            if (marketId != null) {
-                marketIdTextView.setText("Market ID: " + marketId);
-            } else {
-                marketIdTextView.setText("שגיאה: Market ID לא התקבל.");
-                Toast.makeText(requireContext(), "שגיאה: Market ID חסר. 🛑", Toast.LENGTH_LONG).show();
-            }
+
         }
 
         SharedPreferences prefs = requireActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
@@ -107,8 +80,6 @@ public class ManageMarketFragment extends Fragment {
         farmersAdapter = new ArrayAdapter<>(requireContext(),
                 android.R.layout.simple_list_item_1, new ArrayList<>());
         farmersResultsListView.setAdapter(farmersAdapter);
-
-        // --- צפייה ב-LiveData מה-ViewModel ועדכון ה-UI ---
 
         viewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
             inviteFarmerButton.setEnabled(!isLoading && inviterEmail != null && !inviterEmail.isEmpty());
@@ -148,7 +119,7 @@ public class ManageMarketFragment extends Fragment {
             }
         });
 
-        // --- הגדרת מאזינים ללחיצות כפתורים ---
+        //  הגדרת מאזינים ללחיצות כפתורים
 
         inviteFarmerButton.setOnClickListener(v -> {
             String farmerEmail = farmerEmailEditText.getText().toString().trim();
@@ -219,10 +190,6 @@ public class ManageMarketFragment extends Fragment {
                 searchResultsTextView.setVisibility(View.GONE);
                 searchFarmerEditText.setText("");
             }
-        });
-
-        buttonBackToAddMarket.setOnClickListener(v -> {
-            requireActivity().onBackPressed();
         });
 
         buttonGoToMarketProfile.setOnClickListener(v -> {

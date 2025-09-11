@@ -12,7 +12,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 
-import com.example.shock_it.ui.map.farmerProfile.farmerProfile;
 
 import services.Service;
 
@@ -31,8 +30,8 @@ public class AddProductDialogFragment extends DialogFragment {
     public void onStart() {
         super.onStart();
         if (getDialog() != null && getDialog().getWindow() != null) {
-            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90); // 90% מרוחב המסך
-            int height = ViewGroup.LayoutParams.WRAP_CONTENT; // גובה דינמי לפי התוכן
+            int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.90);
+            int height = ViewGroup.LayoutParams.WRAP_CONTENT;
             getDialog().getWindow().setLayout(width, height);
         }
     }
@@ -66,11 +65,9 @@ public class AddProductDialogFragment extends DialogFragment {
             try {
                 double price = Double.parseDouble(priceStr);
 
-                // ביצוע רשת על thread נפרד
                 new Thread(() -> {
                     try {
-                        // כאן קוראים לשרת להוסיף את המוצר
-                        String response = Service.addNewItem(name, desc, price, farmerEmail); // שים את השם הנכון של ה-Service שלך
+                        String response = Service.addNewItem(name, desc, price, farmerEmail);
 
                         requireActivity().runOnUiThread(() -> {
                             Toast.makeText(getContext(), "המוצר נוסף בהצלחה", Toast.LENGTH_SHORT).show();

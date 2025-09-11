@@ -56,6 +56,8 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
                 String founderNameFromResponse = json.optString("founderName", null);
                 this.founderEmail = json.optString("founderEmail", null);
                 String currentMarketId = json.optString("id", null);
+                double lat = json.optDouble("latitude", 0.0);
+                double lon = json.optDouble("longitude", 0.0);
 
                 if (view != null) {
                     view.setMarketId(currentMarketId);
@@ -127,7 +129,7 @@ public class MarketProfilePresenter implements MarketProfileContract.Presenter {
                 }
 
                 if (view != null) {
-                    view.displayMarketProfile(name, hours);
+                    view.displayMarketProfile(name, hours, lat, lon);
                     view.updateFabState(isUserFounder, isUserParticipating, isUserInvited, isUserRequestPending);
                     view.clearFarmersList();
 

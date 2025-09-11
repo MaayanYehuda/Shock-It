@@ -7,15 +7,11 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
-
-import com.example.shock_it.R;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 public class FarmerCardBuilder {
 
     public interface OnFarmerClickListener {
@@ -96,7 +92,6 @@ public class FarmerCardBuilder {
                     JSONObject productObj = productsArray.getJSONObject(i);
                     String productName = productObj.optString("name", "מוצר ללא שם");
 
-                    // ✅ תיקון לבעיית 0.0: קריאת מחיר כמחרוזת ופרסור
                     String priceStr = productObj.optString("price", "0.0");
                     double productPrice = 0.0;
                     try {
