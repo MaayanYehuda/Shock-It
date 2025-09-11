@@ -479,8 +479,6 @@ public class MainActivity extends AppCompatActivity implements
             Log.d("MainActivity", "No search results found.");
         }
     }
-
-
     @Override
     public void onMarketClick(Market market) {
         Log.d("MainActivity", "List item clicked: " + market.getLocation() + ", " + market.getDate());
