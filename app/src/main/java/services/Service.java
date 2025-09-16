@@ -17,7 +17,7 @@ import java.net.URLEncoder;
 
 public class Service {
     // for the emulator: "http://10.0.2.2:3000"
-    private final static String spec = "http://192.168.0.109:3000"; // current ip
+    private final static String spec = "http://192.168.0.106:3000"; // current ip
 
     public static String get(String path) throws IOException {
         URL url = new URL(spec+ "/" +path);
