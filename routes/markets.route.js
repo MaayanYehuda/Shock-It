@@ -329,6 +329,18 @@ router.post("/inviteFarmer", async (req, res) => {
       return res.status(404).json({ message: "Market not found." });
     }
 
+  const checkExisting = await session.run(
+  `
+  MATCH (market:Market {id: $marketId})-[r:INVITE]->(farmer:Person {email: $invitedEmail})
+  RETURN r.participate AS participate
+  `,
+  { marketId, invitedEmail }
+);
+
+if (checkExisting.records.length > 0 && checkExisting.records[0].get("participate") === true) {
+  return res.status(400).json({ message: "Farmer is already participating in the market." });
+}
+
     await session.run(
       `MATCH (market:Market {id: $marketId}), (farmer:Person {email: $invitedEmail})
             MERGE (market)-[r:INVITE]->(farmer)
@@ -372,6 +384,7 @@ router.get("/searchFarmers", async (req, res) => {
   }
 });
 
+// לקבלת כל ההזמנות לשוק עבור חקלאי לפי האימייל שלו
 router.get("/invitations/:email", async (req, res) => {
   const { email } = req.params;
 
@@ -426,6 +439,8 @@ router.put("/acceptInvitation", async (req, res) => {
     });
   }
 });
+
+// דחיית הזמנה לשוק
 router.delete("/declineInvitation", async (req, res) => {
   const { email, marketId } = req.body;
 
@@ -455,6 +470,7 @@ router.delete("/declineInvitation", async (req, res) => {
   }
 });
 
+// הוספת מוצר לשוק על ידי חקלאי (אם המוצר כבר קיים, מעדכן את מחיר)
 router.post("/:marketId/add-product", async (req, res) => {
   const { marketId } = req.params;
   const { farmerEmail, itemName, price } = req.body;
@@ -578,6 +594,7 @@ router.get("/farmer-markets/:email", async (req, res) => {
   }
 });
 
+// שליחת בקשת הצטרפות לשוק
 router.post("/:marketId/request", async (req, res) => {
   const { marketId } = req.params;
   const { email, products } = req.body;
@@ -674,6 +691,7 @@ router.post("/:marketId/request", async (req, res) => {
   }
 });
 
+//קבלת כל בקשות ההצטרפות לשוק
 router.get("/:marketId/requests", async (req, res) => {
   const { marketId } = req.params;
 
@@ -825,9 +843,7 @@ router.post("/:marketId/requests/approve", async (req, res) => {
           await tx.run(
             `
             MATCH (m:Market {id: $marketId})
-            MATCH (i:Item {name: $productName}) // גם כאן, הסר ownerEmail
-            // ודא ש-i קיים בטווח השאילתה הזו, ושהוא מקושר לחקלאי הנכון
-            // (ה-MATCH הקודם כבר אימת את זה, אבל עדיף לוודא שוב אם זו שאילתה נפרדת)
+            MATCH (i:Item {name: $productName})
             MATCH (f:Person {email: $farmerEmail})-[:OFFERS]->(i) 
             MERGE (m)-[wb:WILL_BE]->(i)
             ON CREATE SET wb.marketPrice = $marketPrice
