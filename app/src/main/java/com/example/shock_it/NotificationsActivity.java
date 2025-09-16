@@ -9,24 +9,19 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.shock_it.dialogs.SelectProductForMarketDialogFragment;
 import com.google.android.material.button.MaterialButton;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import classes.Item;
 import services.Service;
 
@@ -153,7 +148,6 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
         }).start();
     }
 
-    // 🆕 תיקון קריטי: הפונקציה מנסה כעת למצוא את מזהה השוק גם תחת המפתח "marketId"
     private List<HashMap<String, String>> parseMarkets(JSONArray marketsArray) throws JSONException {
         List<HashMap<String, String>> markets = new ArrayList<>();
         if (marketsArray != null) {
@@ -161,8 +155,6 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
                 JSONObject marketJson = marketsArray.getJSONObject(i);
                 HashMap<String, String> marketData = new HashMap<>();
 
-                // 🆕 שינוי כאן: קודם מנסים לקבל את מזהה השוק עם המפתח "marketId",
-                // ואם הוא לא קיים, משתמשים במפתח "id" כברירת מחדל
                 String marketId = marketJson.optString("marketId", marketJson.optString("id", ""));
                 marketData.put("marketId", marketId);
 
@@ -178,7 +170,7 @@ public class NotificationsActivity extends AppCompatActivity implements Recomend
     @Override
     public void onAccept(HashMap<String, String> marketData) {
         String marketId = marketData.get("marketId");
-        // � הוספנו בדיקה כדי למנוע שליחת בקשה עם מזהה ריק
+        //   בדיקה כדי למנוע שליחת בקשה עם מזהה ריק
         if (marketId == null || marketId.isEmpty()) {
             Toast.makeText(NotificationsActivity.this, "שגיאה: מזהה שוק ריק, לא ניתן לאשר.", Toast.LENGTH_LONG).show();
             return;

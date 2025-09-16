@@ -1,6 +1,5 @@
 package com.example.shock_it.fragments.loginAndRegister;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,17 +12,12 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-
-import com.example.shock_it.EntryActivity;
 import com.example.shock_it.FarmerHomeActivity;
 import com.example.shock_it.R;
-
 import java.io.IOException;
-
 import services.Service;
 
 public class LoginFrag extends Fragment {
@@ -36,7 +30,7 @@ public class LoginFrag extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
 
-        rootView= inflater.inflate(R.layout.layout_login, container, false); // זה ה־view שלך
+        rootView= inflater.inflate(R.layout.layout_login, container, false);
         Button btnLogIn = rootView.findViewById(R.id.loginButton);
         btnLogIn.setOnClickListener(this::login);
         TextView goRegister = rootView.findViewById(R.id.goRegister);
@@ -89,7 +83,5 @@ public class LoginFrag extends Fragment {
             }
         }).start();
     }
-
-
 }
 

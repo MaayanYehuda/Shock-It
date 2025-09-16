@@ -19,29 +19,6 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <TextView
-                android:id="@+id/textViewMarketId"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="מזהה שוק: לא זמין"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="#2C3E50"
-                android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="32dp"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"/>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="24dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                app:contentPadding="16dp"
-                app:cardBackgroundColor="#FFFFFF">
-
-            </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
@@ -157,19 +134,7 @@
 
             </LinearLayout>
 
-            <Button
-                android:id="@+id/buttonBackToAddMarket"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="חזרה להוספת שוק"
-                android:backgroundTint="#95A5A6"
-                android:textColor="#FFFFFF"
-                android:layout_marginTop="16dp"
-                android:paddingTop="12dp"
-                android:paddingBottom="12dp"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                style="@style/Widget.MaterialComponents.Button"/>
+
 
             <Button
                 android:id="@+id/buttonGoToMarketProfile"

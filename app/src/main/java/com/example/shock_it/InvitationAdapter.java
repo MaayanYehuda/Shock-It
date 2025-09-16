@@ -1,4 +1,4 @@
-package com.example.shock_it; // Adjust package name as needed
+package com.example.shock_it;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -46,11 +46,10 @@ public class InvitationAdapter extends RecyclerView.Adapter<InvitationAdapter.In
         HashMap<String, String> invitation = invitationList.get(position);
 
         // Retrieve data using keys
-        String marketId = invitation.get("marketId"); // You can use marketId if needed for actions
+        String marketId = invitation.get("marketId");
         String location = invitation.get("location");
         String date = invitation.get("date");
 
-        // Assuming marketName is the same as location or retrieved from elsewhere
         String marketName = location;
 
         holder.marketNameTextView.setText(marketName);

@@ -3,12 +3,8 @@ package com.example.shock_it.ui.map.addMarket;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.IOException;
-
 import services.Service;
 
 public class AddMarketViewModel extends ViewModel {
@@ -36,20 +32,20 @@ public class AddMarketViewModel extends ViewModel {
     }
 
 
-    // פונקציה להוספת שוק - לוגיקה של עבודה ברקע וקריאת API
-    public void addMarket(String date, String location, double latitude, double longitude, String farmerEmail) {
+    // פונקציה להוספת שוק
+    public void addMarket(String date,String hours, String location, double latitude, double longitude, String farmerEmail) {
         isLoading.setValue(true);
 
         new Thread(() -> {
             String response = null;
-            response = Service.addNewMarket(date, location, latitude, longitude, farmerEmail);
+            response = Service.addNewMarket(date ,location,hours, latitude, longitude, farmerEmail);
             if (response != null && !response.isEmpty()) {
                 try {
                     JSONObject jsonResponse = new JSONObject(response);
                     if (jsonResponse.has("message") && jsonResponse.getString("message").equals("Market already exists")) {
                         toastMessage.postValue("שוק כבר קיים במיקום ותאריך זה");
                         marketAddedSuccessfully.postValue(false);
-                        this.newMarketId = null; // 🆕 הוסף את השורה הזו
+                        this.newMarketId = null;
                     } else {
 
                         if (jsonResponse.has("marketId")) {
@@ -63,15 +59,14 @@ public class AddMarketViewModel extends ViewModel {
                     }
                 } catch (JSONException e) {
                     toastMessage.postValue("שגיאה בפיענוח תגובת השרת: " + e.getMessage());
-                    marketAddedSuccessfully.postValue(false); // 🆕 עדכון למקרה שגיאה
-                    this.newMarketId = null; // 🆕 הוסף את השורה הזו
+                    marketAddedSuccessfully.postValue(false);
+                    this.newMarketId = null;
                 }
             } else {
                 toastMessage.postValue("שגיאה בהוספת השוק: תגובה ריקה או Null");
                 marketAddedSuccessfully.postValue(false);
-                this.newMarketId = null; // 🆕 הוסף את השורה הזו
+                this.newMarketId = null;
             }
-// ... קוד קיים אחרי ...
             isLoading.postValue(false);
         }).start();
     }

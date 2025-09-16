@@ -7,7 +7,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.example.shock_it.R;
 import java.util.HashMap;
 import java.util.List;
 
@@ -17,7 +16,6 @@ public class RecomendedMarketAdapter extends RecyclerView.Adapter<RecomendedMark
     private final OnItemActionListener listener;
     private int viewType;
 
-    // שינוי: הוספת מתודה חדשה לממשק עבור לחיצה על כפתור "צפה בפרופיל"
     public interface OnItemActionListener {
         void onAccept(HashMap<String, String> marketData);
         void onDecline(HashMap<String, String> marketData);
