@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="#F5F5F5"
+    android:layoutDirection="rtl">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_centerInParent="true"
+            android:gravity="center_horizontal"
+            android:background="@android:color/transparent"
+            android:padding="16dp">
+
+            <TextView
+                android:id="@+id/textView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="כניסה למערכת"
+                android:textSize="36sp"
+                android:textStyle="bold"
+                android:textColor="#333333"
+                android:gravity="center"
+                android:layout_marginBottom="48dp" /> <EditText
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/rounded_edittext_background"
+            android:drawableStart="@drawable/en"
+            android:drawablePadding="12dp"
+            android:hint="אימייל"
+            android:inputType="textEmailAddress"
+            android:padding="12dp"
+            android:textDirection="rtl"
+            android:textColor="#333333"
+            android:textColorHint="#888888" />
+
+            <EditText
+                android:id="@+id/password"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                android:background="@drawable/rounded_edittext_background"
+                android:drawableStart="@drawable/ic_lock"
+                android:drawablePadding="12dp"
+                android:hint="סיסמה"
+                android:inputType="textPassword"
+                android:padding="12dp"
+                android:textDirection="rtl"
+                android:textColor="#333333"
+                android:textColorHint="#888888" />
+
+            <Button
+                android:id="@+id/loginButton"
+                android:layout_width="250dp"
+                android:layout_height="wrap_content"
+                android:text="התחבר"
+                android:elevation="6dp"
+                android:layout_marginBottom="24dp"
+                android:layout_gravity="center_horizontal"
+                android:padding="14dp"
+                android:backgroundTint="#9DC183"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/goRegister"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="אין לך חשבון? הירשם כאן."
+                android:gravity="center"
+                android:textSize="16sp"
+                android:textColor="#007BFF"
+                android:layout_gravity="center_horizontal"
+                android:paddingTop="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:textStyle="italic" />
+        </LinearLayout>
+    </RelativeLayout>
+</ScrollView>

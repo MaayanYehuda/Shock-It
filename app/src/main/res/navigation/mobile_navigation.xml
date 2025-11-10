@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@id/nav_map">
+
+    <fragment
+        android:id="@+id/nav_map"
+        android:name="com.example.shock_it.ui.map.map.MapFragment"
+        android:label="מפת שווקים"
+        tools:layout="@layout/fragment_map" >
+
+        <action
+            android:id="@+id/action_mapFragment_to_farmerProfile"
+            app:destination="@id/farmerProfile"
+            app:launchSingleTop="true" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_add_market"
+        android:name="com.example.shock_it.ui.map.addMarket.AddMarketFragment"
+        android:label="הוספת שוק חדש"
+        tools:layout="@layout/fragment_add_market"
+        />
+
+    <fragment
+        android:id="@+id/farmerProfile"
+        android:name="com.example.shock_it.ui.map.farmerProfile.farmerProfile"
+        android:label="פרופיל חקלאי"
+        tools:layout="@layout/fragment_farmer_profile" >
+        <action
+            android:id="@+id/action_farmerProfile_self"
+            app:destination="@id/farmerProfile" />
+    </fragment>
+
+    <action
+        android:id="@+id/action_global_nav_map"
+        app:destination="@id/nav_map"
+        app:popUpTo="@id/mobile_navigation"
+        app:popUpToInclusive="true"
+        app:launchSingleTop="true" />
+
+    <action
+        android:id="@+id/action_global_farmerProfile"
+        app:destination="@id/farmerProfile"
+        app:launchSingleTop="true"
+        />
+
+    <action
+        android:id="@+id/action_global_nav_add_market"
+        app:destination="@id/nav_add_market"
+        app:launchSingleTop="true" />
+
+</navigation>

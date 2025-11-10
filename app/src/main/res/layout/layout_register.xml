@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/registerFragmentLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="rtl"
+    android:padding="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_centerInParent="true"
+        android:gravity="center_horizontal"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="הרשמת חקלאי"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="32dp"
+            android:gravity="center" />
+
+        <EditText
+            android:id="@+id/fullName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="שם מלא"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="textPersonName"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="כתובת מייל"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="textEmailAddress"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="מספר טלפון"
+            android:inputType="phone"
+            android:layout_marginBottom="16dp"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:padding="12dp" />
+
+        <EditText
+            android:id="@+id/password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="סיסמה"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/confirmPassword"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="אימות סיסמה"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="textPassword"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/address"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="כתובת (נדרש למיקום)"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="textPostalAddress"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <EditText
+            android:id="@+id/notificationRadius"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="רדיוס התראות בק''מ (אופציונלי)"
+            android:gravity="right"
+            android:textDirection="rtl"
+            android:inputType="number"
+            android:padding="12dp"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/registerButton"
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:text="הירשם"
+            android:layout_gravity="center_horizontal"
+            android:backgroundTint="@android:color/holo_green_dark"
+            android:textColor="#FFFFFF"
+            android:padding="12dp" />
+
+        <TextView
+            android:id="@+id/goToLogin"
+            android:onClick="goToLogin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="כבר יש לך חשבון? היכנס פה"
+            android:textColor="#0000FF"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:layout_gravity="center_horizontal"
+            android:clickable="true"
+            android:focusable="true" />
+    </LinearLayout>
+</RelativeLayout>

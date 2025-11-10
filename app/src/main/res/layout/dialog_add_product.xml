@@ -1,0 +1,39 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/dialog_background"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <EditText
+        android:id="@+id/productNameInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="שם המוצר"
+        android:inputType="text" />
+
+    <EditText
+        android:id="@+id/productDescInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="תיאור"
+        android:inputType="textMultiLine"
+        android:layout_marginTop="12dp"/>
+
+    <EditText
+        android:id="@+id/productPriceInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="מחיר"
+        android:inputType="numberDecimal"
+        android:layout_marginTop="12dp"/>
+
+    <Button
+        android:id="@+id/confirmAddButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="הוסף"
+        android:layout_marginTop="20dp"
+        android:backgroundTint="#9DC183"
+        android:textColor="#FFFFFF"/>
+</LinearLayout>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="400"
+        android:font="@font/assistant_medium" />
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:font="@font/assistant_bold" />
+    <font
+        android:fontStyle="normal"
+        android:fontWeight="700"
+        android:font="@font/rubikwetpaint_regular" />
+</font-family>
