@@ -82,11 +82,12 @@ Both team members contributed to the design, development, and integration of the
 This project was developed as a final-year software engineering project at ORT Braude College.
 It aims to make agricultural trading more accessible, digital, and efficient — by connecting farmers through a simple and intuitive mobile experience.
 
-📁 Repository Structure
+📁 Repository Structure:
+```bash
 Shock-It/
-├── server/     # Node.js + Neo4j backend
-└── android/    # Kotlin Android app
-
+  ├── server/     # Node.js + Neo4j backend
+  └── android/    # Kotlin Android app
+```
 🏁 License
 
 This project is for educational and portfolio purposes.
